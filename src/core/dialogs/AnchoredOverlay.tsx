@@ -15,6 +15,18 @@ export function anchoredOverlayPosition(anchor: Pick<DOMRect, "top" | "left" | "
   };
 }
 
+export function unscaleAnchoredOverlayPosition(position: { top: number; left: number }, cssZoom: number): { top: number; left: number } {
+  const scale = Number.isFinite(cssZoom) && cssZoom > 0 ? cssZoom : 1;
+  return { top: position.top / scale, left: position.left / scale };
+}
+
+function effectiveCssZoom(element: HTMLElement): number {
+  const currentCssZoom = (element as HTMLElement & { currentCSSZoom?: number }).currentCSSZoom;
+  if (typeof currentCssZoom === "number" && currentCssZoom > 0) return currentCssZoom;
+  const rootZoom = Number.parseFloat(getComputedStyle(document.documentElement).zoom);
+  return Number.isFinite(rootZoom) && rootZoom > 0 ? rootZoom : 1;
+}
+
 export function AnchoredOverlay({ anchorRef, children, className, onClose, alignment = "start", matchAnchorWidth = false }: { anchorRef: RefObject<HTMLElement | null>; children: ReactNode; className: string; onClose: () => void; alignment?: OverlayAlignment; matchAnchorWidth?: boolean }) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
@@ -26,12 +38,15 @@ export function AnchoredOverlay({ anchorRef, children, className, onClose, align
       const anchor = anchorRef.current;
       const overlay = overlayRef.current;
       if (!anchor || !overlay) return;
+      const cssZoom = effectiveCssZoom(overlay);
       const anchorRect = anchor.getBoundingClientRect();
-      if (matchAnchorWidth) overlay.style.width = `${anchorRect.width}px`;
+      const matchedWidth = matchAnchorWidth ? anchorRect.width / cssZoom : undefined;
+      if (matchedWidth) overlay.style.width = `${matchedWidth}px`;
       const overlayRect = overlay.getBoundingClientRect();
+      const position = anchoredOverlayPosition(anchorRect, overlayRect, { width: window.innerWidth, height: window.innerHeight }, alignment);
       setStyle({
-        ...anchoredOverlayPosition(anchorRect, overlayRect, { width: window.innerWidth, height: window.innerHeight }, alignment),
-        width: matchAnchorWidth ? anchorRect.width : undefined,
+        ...unscaleAnchoredOverlayPosition(position, cssZoom),
+        width: matchedWidth,
       });
     };
     position();

@@ -1,8 +1,8 @@
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { createSeedData } from "../../seed";
-import { EntityContextLine, entityContextsForLocation, quantifierContextsForSelections } from "./EntityContextLine";
+import { EntityContextLine, QuantifierTitleIcons, entityContextsForLocation, quantifierContextsForSelections, quantifierMetadataContextsForSelections } from "./EntityContextLine";
 import { QUANTIFIER_IDS } from "../../domain";
 
 describe("EntityContextLine", () => {
@@ -45,5 +45,21 @@ describe("EntityContextLine", () => {
     expect(container.querySelectorAll(".lucide-icon-sequence .lucide-zap")).toHaveLength(3);
     expect(container).not.toHaveTextContent("Relaxed");
     expect(screen.getByLabelText("Energy: Relaxed")).toBeInTheDocument();
+  });
+
+  it("separates configured title icons from metadata fallbacks in definition order", async () => {
+    const data = createSeedData();
+    data.quantifierDefinitions[0].options[0].iconNames = ["battery-plus"];
+    const selections = { [QUANTIFIER_IDS.energy]: "energy_1", [QUANTIFIER_IDS.context]: "context_6" };
+    const { container } = render(<>
+      <strong><span>Entity</span><QuantifierTitleIcons data={data} selections={selections} /></strong>
+      <EntityContextLine items={quantifierMetadataContextsForSelections(data, selections)} />
+    </>);
+
+    expect(screen.getByLabelText("Energy: Relaxed").closest("strong")).not.toBeNull();
+    await waitFor(() => expect(container.querySelector("strong .lucide-battery-plus")).not.toBeNull());
+    expect(container.querySelector(".entity-context-line")).toHaveTextContent("Relationship");
+    expect(container.querySelector(".entity-context-line .lucide-component")).not.toBeNull();
+    expect(container.querySelector(".entity-context-line .lucide-battery-plus")).toBeNull();
   });
 });

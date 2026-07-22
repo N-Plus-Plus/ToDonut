@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AppData, QUANTIFIER_IDS, Task } from "../../domain";
 import { createSeedData } from "../../seed";
@@ -54,6 +54,24 @@ describe("TaskRow", () => {
     expect(screen.getByText(data.areas[0].title)).toHaveStyle({ color: data.areas[0].color });
     expect(screen.getByText(project.title)).toHaveStyle({ color: project.color });
     expect(screen.queryByText("Active parent")).not.toBeInTheDocument();
+  });
+
+  it("places configured Quantifier icons after the Task name and leaves fallback Quantifiers in metadata", async () => {
+    const data = createSeedData();
+    data.quantifierDefinitions[0].options[2].iconNames = ["battery-plus"];
+    const task = {
+      ...data.tasks[0],
+      quantifierSelections: { [QUANTIFIER_IDS.energy]: "energy_3", [QUANTIFIER_IDS.context]: "context_5" },
+    };
+
+    const { container } = renderRow(data, task);
+
+    const title = screen.getByLabelText("Energy: Medium Energy").closest(".task-title")!;
+    await waitFor(() => expect(title.querySelector(".lucide-battery-plus")).not.toBeNull());
+    expect(screen.getByLabelText("Energy: Medium Energy").closest(".task-title")).toBe(title);
+    expect(container.querySelector(".task-secondary-meta .lucide-battery-plus")).toBeNull();
+    expect(container.querySelector(".task-secondary-meta .lucide-component")).not.toBeNull();
+    expect(container.querySelector(".task-secondary-meta")).toHaveTextContent("Digital");
   });
 
   it("uses icon actions and keeps interactive clicks out of row selection", () => {

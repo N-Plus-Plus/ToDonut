@@ -189,7 +189,7 @@ Wrapping Tag pickers keep the Add tag control first, followed immediately by sel
 
 ## Status, Priority And Project Markers
 
-Each Status has one unique palette colour and one unique selectable Lucide icon from the approved circle-icon set. Used colours and icons do not appear as choices for another Status, while the record's own current choices remain visible during editing. Project browser cards render the configured Status icon in its configured colour immediately before the title; the icon supplements grouping and accessible naming rather than replacing Status text everywhere.
+Each Status has one unique palette colour and one unique selectable Lucide icon from the approved circle-icon set. Used colours and icons do not appear as choices for another Status, while the record's own current choices remain visible during editing. Project browser cards render the configured Status icon in its configured colour immediately before the title. Project card title text uses the primary white text colour at medium weight (`500`); the icon supplements grouping and accessible naming rather than replacing Status text everywhere.
 
 Use `.badge` for status and sync-like labels, `.priority-indicator` for priority, and `.project-marker` for project identity. Each uses a small marker plus text so colour is not the only indicator.
 
@@ -278,7 +278,7 @@ Do not wrap ordinary Project or Area modal fields in a decorative `Details` cont
 
 All checkbox-driven controls use the shared Lucide circle treatment: `Circle` when unchecked and `CircleCheck` when checked. Checked icons use the adjacent entity's configured colour when the option represents a coloured entity, such as an Area menu item; every other checked icon uses mint. Browser-native checkbox artwork is not shown.
 
-Quantifier selectors use a responsive two-column row and stack on narrow screens. Their labels use the semantic icon followed by the configurable dimension name: Lucide `Zap` for Energy and Lucide `Component` for Context. Selectors always show the full option name. Settings gives every option a companion icon-token field accepting pipe-separated Lucide reference names; explanatory copy must state that spaces are ignored and order and duplicates are preserved. When selected values appear in entity metadata, append them after Area and Project context on the same comma-separated line. A configured option renders only its ordered icon sequence at `--icon-inline` size while retaining the full dimension and option name accessibly; an unconfigured option falls back to the dimension icon followed by its muted name. Inline metadata icons use the same secondary foreground colour as ordinary Edit, Promote/Demote and Archive actions. Keep icon-bearing entries in inline text flow with the icon vertically offset, not flex-centred, so text baselines match adjacent icon-free text.
+Quantifier selectors use a responsive two-column row and stack on narrow screens. Their labels use the semantic icon followed by the configurable dimension name: Lucide `Zap` for Energy and Lucide `Component` for Context. Selectors always show the full option name. Settings gives every option a companion icon-token field accepting pipe-separated Lucide reference names; explanatory copy must state that spaces are ignored and order and duplicates are preserved. A configured option renders only its ordered icon sequence at `--icon-inline` size immediately after the associated Project, Task or List name, separated by the standard small gap; further configured Quantifiers follow after the same gap in definition order. These title-adjacent icons use the primary white text colour, and the full dimension and option name remains accessible. An unconfigured selected option stays in metadata after Area and Project context and falls back to the dimension icon followed by its muted name. Metadata Quantifier icons use the same secondary foreground colour as ordinary Edit, Promote/Demote and Archive actions. Keep metadata icon-bearing entries in inline text flow with the icon vertically offset, not flex-centred, so text baselines match adjacent icon-free text.
 
 On desktop, the four Trash entity tabs share one row with each tab approximately half its former width. Mobile retains the full-width responsive tab strip.
 
@@ -318,11 +318,11 @@ Archived detail surfaces must look clearly archived without becoming disabled-lo
 
 ## Responsive Layout
 
-Desktop content uses `width: min(--size-content-max, 100%)`, centered within the available space, with horizontal padding that grows up to `--space-12`. Wide screens may increase top padding and section rhythm.
+Desktop content uses `width: min(--size-content-max, 100%)`, centered within the available space, with horizontal padding that grows up to `--space-12`. Wide screens may increase top padding and section rhythm. At a viewport width of `2000px` or more, apply a layout-aware `1.3` root interface scale to the complete application, including overlays and fixed controls. Compensate the full-height shell so it still occupies exactly one visible viewport. Below `2000px`, use the ordinary `1` scale. The application scale supplements normal browser zoom and must not use a zoom-reset value that blocks user adjustment.
 
 Mobile uses a single-column shell, bottom navigation, `--space-4` to `--space-5` side padding, comfortable touch targets, wrapping task titles, and full-width quick-add submit buttons on narrow phones.
 
-Validate at narrow phone, ordinary phone, tablet width, standard desktop and wide desktop. Check no horizontal scrolling, clipped controls, inconsistent button heights or tag geometry, poor line lengths, and modal usability.
+Validate at narrow phone, ordinary phone, tablet width, standard desktop, the `2000px` scale boundary and an ultra-wide desktop. Check no horizontal scrolling, clipped controls, inconsistent button heights or tag geometry, poor line lengths, modal usability or anchored-overlay drift.
 
 ## Accessibility
 
@@ -433,6 +433,8 @@ Project create/edit places Area first and Status second in one responsive two-co
 Area colours appear as a small accent or marker, never as a full-card fill. Per-Project colour is dormant compatibility data: Project create/edit has no colour picker and Project browser rows show no Project-colour accent. Keep the stored value and dormant accent styling available for a possible future restoration. Project and Area icons are not configurable; the established navigation icons may represent their kind in inline parent context. The row title, context and lifecycle text must not rely on colour alone.
 
 Project progress is compact metadata. Lead it with the established Lucide `ListTodo` Task icon using the shared baseline-safe inline icon pattern. Show percent closed when actionable Tasks exist, plus open, completed and cancelled counts where space permits. When no actionable Tasks exist, show `No actionable Tasks`. Progress text must wrap before crowding the title or actions.
+
+Project browser-card actions remain in the same row as the title and metadata whenever the card has practical horizontal room. Tablet and wide-mobile layouts retain that row; only narrow layouts stack the action group beneath the text.
 
 Project detail headers use the identity block and compact actions without a local Back shortcut; returning to the Projects browser is available through the Projects destination. Area detail headers may reuse the Reference List Back pattern. Completed and archived Project detail surfaces remove creation/edit affordances that are not allowed rather than leaving disabled controls in place. Archived and completed states use readable lifecycle text and subdued styling without making existing content look broken.
 

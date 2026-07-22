@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -401,6 +401,24 @@ describe("Task completion exit animation", () => {
 describe("Reference List row layout", () => {
   afterEach(() => cleanup());
 
+  it("applies the 1.3 interface scale only at the very-wide viewport threshold", () => {
+    const styles = readFileSync(resolve(root, "src/styles.css"), "utf8");
+    expect(styles).toContain("@media (min-width: 2000px)");
+    expect(styles).toContain("html { zoom: 1.3; }");
+    expect(styles).toContain("height: 76.9230769dvh;");
+  });
+
+  it("uses primary white for title-adjacent Quantifier icons", () => {
+    const styles = readFileSync(resolve(root, "src/styles.css"), "utf8");
+    expect(styles).toContain(".entity-title-quantifiers .lucide-icon-sequence { color: var(--colour-text); }");
+  });
+
+  it("uses medium-weight primary white Project card titles", () => {
+    const styles = readFileSync(resolve(root, "src/styles.css"), "utf8");
+    expect(styles).toContain(".project-row__title > .entity-title-text");
+    expect(styles).toContain("color: var(--colour-text);\n  font: inherit;\n  font-weight: 500;");
+  });
+
   it("renders handle, text block and one right-aligned action group in order", () => {
     const data = createSeedData();
     const list = { ...data.referenceLists[0], quantifierSelections: { [QUANTIFIER_IDS.energy]: "energy_1", [QUANTIFIER_IDS.context]: "context_6" } };
@@ -431,6 +449,18 @@ describe("Reference List row layout", () => {
     expect(row.children[2].querySelectorAll(".icon-button")).toHaveLength(3);
     expect(screen.queryByRole("button", { name: `Move ${list.title} up` })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: `Move ${list.title} down` })).not.toBeInTheDocument();
+  });
+
+  it("places configured Quantifier icons beside the List name", async () => {
+    const data = createSeedData();
+    data.quantifierDefinitions[0].options[0].iconNames = ["battery-plus"];
+    const list = { ...data.referenceLists[0], quantifierSelections: { [QUANTIFIER_IDS.energy]: "energy_1", [QUANTIFIER_IDS.context]: "context_6" } };
+    const { container } = render(<ListRow data={data} list={list} onClick={vi.fn()} />);
+
+    await waitFor(() => expect(container.querySelector(".reference-list-row__title .lucide-battery-plus")).not.toBeNull());
+    expect(screen.getByLabelText("Energy: Relaxed").closest(".reference-list-row__title")).not.toBeNull();
+    expect(container.querySelector(".reference-list-row__location .lucide-battery-plus")).toBeNull();
+    expect(container.querySelector(".reference-list-row__location")).toHaveTextContent("Relationship");
   });
 
   it("keeps actions accessible, destructive delete styled, and action clicks out of row open", () => {

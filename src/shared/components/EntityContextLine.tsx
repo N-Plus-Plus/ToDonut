@@ -44,6 +44,24 @@ export function quantifierContextsForSelections(data: AppData, selections?: Quan
   });
 }
 
+export function quantifierMetadataContextsForSelections(data: AppData, selections?: QuantifierSelections): EntityContextItem[] {
+  return quantifierContextsForSelections(data, selections).filter((item) => !item.iconNames?.length);
+}
+
+export function QuantifierTitleIcons({ data, selections }: { data: AppData; selections?: QuantifierSelections }) {
+  const items = quantifierContextsForSelections(data, selections).filter((item) => item.iconNames?.length);
+  if (!items.length) return null;
+  return <span className="entity-title-quantifiers">{items.map((item) => (
+    <span
+      key={`${item.kind}:${item.title}`}
+      className="entity-title-quantifier"
+      aria-label={`${item.prefix}: ${item.title}`}
+    >
+      <LucideIconSequence iconNames={item.iconNames!} />
+    </span>
+  ))}</span>;
+}
+
 export function entityContextsForLocation(data: AppData, location: TaskLocation | ReferenceListLocation): EntityContextItem[] {
   if (location.type === "area") {
     const area = data.areas.find((candidate) => candidate.id === location.areaId);

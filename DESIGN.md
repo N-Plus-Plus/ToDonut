@@ -511,7 +511,7 @@ Desktop navigation should include:
 * Settings;
 * desktop Export access.
 
-The desktop interface should use available whitespace deliberately rather than stretching a dense mobile layout across the viewport.
+The desktop interface should use available whitespace deliberately rather than stretching a dense mobile layout across the viewport. At viewport widths of `2000px` or more, the complete interface starts at a `1.3` presentation scale so ultra-wide displays do not leave the active UI disproportionately small. Below `2000px`, the interface returns to its ordinary `1` scale. This application default must compound with, and never disable or reset, user-controlled browser zoom.
 
 ---
 
@@ -836,7 +836,7 @@ Schedule create and edit Task tabs expose a blank-default Area selector to the l
 
 All checkbox-driven interactions, including dropdown menu options, render Lucide `Circle` when unchecked and `CircleCheck` when checked. A checked option associated with a coloured entity uses that entity colour; otherwise the checked icon is mint. Native checkbox artwork is not presented.
 
-Energy and Context are configurable first-class Quantifier dimensions shared by Tasks, Projects, Lists and recurring Task templates. Energy begins with Relaxed, Low Energy, Medium Energy, High Energy and It's a Whole Thing. Context begins with Home, Work, Outing, Mental, Digital and Relationship. Settings provides one Quantifiers entry where each dimension can be renamed and its arbitrary-length option list can be added to, renamed, removed and reordered. Persist assignments by stable dimension and option IDs so renames are non-destructive. During migration, matching Energy and Context Tag Group assignments are copied without deleting legacy tags. Entity metadata places Lucide Zap Energy and Lucide Component Context after Area and Project context.
+Energy and Context are configurable first-class Quantifier dimensions shared by Tasks, Projects, Lists and recurring Task templates. Energy begins with Relaxed, Low Energy, Medium Energy, High Energy and It's a Whole Thing. Context begins with Home, Work, Outing, Mental, Digital and Relationship. Settings provides one Quantifiers entry where each dimension can be renamed and its arbitrary-length option list can be added to, renamed, removed and reordered. Persist assignments by stable dimension and option IDs so renames are non-destructive. During migration, matching Energy and Context Tag Group assignments are copied without deleting legacy tags. A selected option with configured Lucide icons places its ordered icon sequence immediately after the associated Project, Task or List name; further configured Quantifiers follow in definition order. Selected options without configured icons remain in entity metadata after Area and Project context using the semantic dimension icon and option name.
 
 When a List or another creation editor requests a Project, it uses a text combobox with filtered Project suggestions. Clicking a suggestion stores that Project relationship. Typing a unique exact Project title, ignoring case and surrounding whitespace, stores the same Project ID relationship even when the suggestion is not clicked; display text alone is never persisted as a substitute for the relationship.
 

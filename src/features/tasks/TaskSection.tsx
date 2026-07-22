@@ -21,7 +21,7 @@ import {
 } from "../../domain";
 import { Button } from "../../shared/components/Button";
 import { EmptyState } from "../../shared/components/EmptyState";
-import { EntityContextLine, entityContextsForLocation, quantifierContextsForSelections } from "../../shared/components/EntityContextLine";
+import { EntityContextLine, QuantifierTitleIcons, entityContextsForLocation, quantifierMetadataContextsForSelections } from "../../shared/components/EntityContextLine";
 import { TaskProgressMeta } from "../../shared/components/TaskProgressMeta";
 import { TASK_COMPLETION_ANIMATION_MS } from "./completionTiming";
 
@@ -457,7 +457,8 @@ export function TaskRow({
           className="task-title task-title-button"
           onClick={(event) => { event.stopPropagation(); editTask(task); }}
         >
-          {task.title}
+          <span className="entity-title-text">{task.title}</span>
+          <QuantifierTitleIcons data={data} selections={task.quantifierSelections} />
         </button>
         {presentation === "detailed" && !task.aggregate && task.description && (
           <p className="task-description">{task.description}</p>
@@ -514,7 +515,7 @@ export function TaskRow({
               {priority.name}
             </span>
           )}
-          <EntityContextLine items={[...entityContextsForLocation(data, task.location), ...quantifierContextsForSelections(data, task.quantifierSelections)]} />
+          <EntityContextLine items={[...entityContextsForLocation(data, task.location), ...quantifierMetadataContextsForSelections(data, task.quantifierSelections)]} />
           {presentation === "detailed" &&
             !task.aggregate &&
             tags.map((tag: AppData["tags"][number]) => (

@@ -163,7 +163,7 @@ import { AppErrorBoundary } from "./AppErrorBoundary";
 import { Button } from "../shared/components/Button";
 import { EmptyState } from "../shared/components/EmptyState";
 import { ProjectCombobox } from "../shared/components/ProjectCombobox";
-import { EntityContextLine, entityContextsForLocation, quantifierContextsForSelections } from "../shared/components/EntityContextLine";
+import { EntityContextLine, QuantifierTitleIcons, entityContextsForLocation, quantifierMetadataContextsForSelections } from "../shared/components/EntityContextLine";
 import { CircleCheckbox } from "../shared/components/CircleCheckbox";
 import { QuantifierFields } from "../shared/components/QuantifierFields";
 import { StatusIcon } from "../shared/components/StatusIcon";
@@ -1681,7 +1681,15 @@ function Application() {
             <div className="topbar-title-row">
               {detailBackTarget && <button type="button" className="icon-button button ghost entity-back-button" aria-label="Back" title="Back" onClick={navigateBackFromDetail}><ArrowLeft aria-hidden="true" /></button>}
               {settingsBackVisible && <button type="button" className="icon-button button ghost entity-back-button" aria-label="Back to Settings" title="Back to Settings" onClick={navigateBackFromSettings}><ArrowLeft aria-hidden="true" /></button>}
-              <h2 style={selectedList?.color ? { color: selectedList.color } : undefined}>{title}</h2>
+              <h2 style={selectedList?.color ? { color: selectedList.color } : undefined}>
+                <span className="entity-title-text">{title}</span>
+                {(selectedList || selectedProject) && (
+                  <QuantifierTitleIcons
+                    data={data}
+                    selections={(selectedList ?? selectedProject)?.quantifierSelections}
+                  />
+                )}
+              </h2>
             </div>
           </div>
           <div className="topbar-actions">
@@ -4899,7 +4907,10 @@ export function ListRow({
         onClick={onClick}
         aria-label={`Open ${list.title}`}
       >
-        <strong className="reference-list-row__title" style={list.color ? { color: list.color } : undefined}>{list.title}</strong>
+        <strong className="reference-list-row__title" style={list.color ? { color: list.color } : undefined}>
+          <span className="entity-title-text">{list.title}</span>
+          <QuantifierTitleIcons data={data} selections={list.quantifierSelections} />
+        </strong>
         <span className="reference-list-row__location">{listLocationIndicator(data, list)}</span>
       </button>
       <div className="row-icon-actions reference-list-row__actions">
@@ -5473,7 +5484,7 @@ function ProjectRow({
     : "No actionable Tasks";
   return (
     <article
-      className={`list-browser__row project-row ${allowReorder ? "project-row--reorderable" : ""} ${closed ? "completed-project" : ""}`}
+      className={`list-browser__row project-row project-card-row ${allowReorder ? "project-row--reorderable" : ""} ${closed ? "completed-project" : ""}`}
     >
       {allowReorder && (
         <button
@@ -5498,8 +5509,12 @@ function ProjectRow({
         </button>
       )}
       <button type="button" className="list-row-action__main project-row__main" onClick={open}>
-        <strong className="project-row__title">{status && <StatusIcon icon={status.icon} color={status.color} label={status.name} />}{project.title}</strong>
-        <span className="project-row__meta"><EntityContextLine items={[...(area ? [{ kind: "area", prefix: "Area", title: area.title, color: area.color }] : [{ kind: "location", prefix: "", title: "Unassigned" }]), ...quantifierContextsForSelections(data, project.quantifierSelections)]} />, <TaskProgressMeta>{progressMeta}</TaskProgressMeta></span>
+        <strong className="project-row__title">
+          {status && <StatusIcon icon={status.icon} color={status.color} label={status.name} />}
+          <span className="entity-title-text">{project.title}</span>
+          <QuantifierTitleIcons data={data} selections={project.quantifierSelections} />
+        </strong>
+        <span className="project-row__meta"><EntityContextLine items={[...(area ? [{ kind: "area", prefix: "Area", title: area.title, color: area.color }] : [{ kind: "location", prefix: "", title: "Unassigned" }]), ...quantifierMetadataContextsForSelections(data, project.quantifierSelections)]} />, <TaskProgressMeta>{progressMeta}</TaskProgressMeta></span>
         {tags.length > 0 && (
           <span className="tag-wrap">
             {tags.map((tag) => (
@@ -5698,9 +5713,12 @@ function ProjectDetail({
     <section className={`task-section ${readOnly ? "archived-detail" : ""}`}>
       <div className="list-detail-header project-detail-header">
         <div className="list-detail-title">
-          <h3>{project.title}</h3>
+          <h3>
+            <span className="entity-title-text">{project.title}</span>
+            <QuantifierTitleIcons data={data} selections={project.quantifierSelections} />
+          </h3>
           <p className="task-meta">
-            <EntityContextLine items={[...(project.areaId ? [{ kind: "area", prefix: "Area", title: projectArea?.title ?? "Area unavailable", color: projectArea?.color }] : [{ kind: "location", prefix: "", title: "Unassigned" }]), ...quantifierContextsForSelections(data, project.quantifierSelections)]} />{", "}
+            <EntityContextLine items={[...(project.areaId ? [{ kind: "area", prefix: "Area", title: projectArea?.title ?? "Area unavailable", color: projectArea?.color }] : [{ kind: "location", prefix: "", title: "Unassigned" }]), ...quantifierMetadataContextsForSelections(data, project.quantifierSelections)]} />{", "}
             {project.archivedAt
               ? "Archived"
               : projectStatus?.name ?? "Status unavailable"}{" "}
@@ -6012,5 +6030,5 @@ function listContext(data: AppData, list: ReferenceList) {
 
 function listLocationIndicator(data: AppData, list: ReferenceList) {
   const locationItems = entityContextsForLocation(data, list.location);
-  return <EntityContextLine items={[...(locationItems.length ? locationItems : [{ kind: "location", prefix: "", title: "Loose" }]), ...quantifierContextsForSelections(data, list.quantifierSelections)]} />;
+  return <EntityContextLine items={[...(locationItems.length ? locationItems : [{ kind: "location", prefix: "", title: "Loose" }]), ...quantifierMetadataContextsForSelections(data, list.quantifierSelections)]} />;
 }
