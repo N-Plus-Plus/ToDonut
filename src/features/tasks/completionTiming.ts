@@ -1,0 +1,1 @@
+export const TASK_COMPLETION_ANIMATION_MS = 640;

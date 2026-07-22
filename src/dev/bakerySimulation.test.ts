@@ -1,0 +1,4 @@
+import {describe,expect,it} from "vitest";
+import {runBakerySimulation,standardScenarios} from "./bakerySimulation";
+const scenario={activity:"ordinary",structure:"aggregate",selling:"mixed",business:"balanced",days:90,seed:8} as const;
+describe("deterministic Bakery simulation",()=>{it("repeats fixed scenarios exactly",()=>expect(runBakerySimulation(scenario)).toEqual(runBakerySimulation(scenario)));it("covers required time horizons and emits core metrics",()=>{const results=standardScenarios();expect(new Set(results.map(x=>x.scenario.days))).toEqual(new Set([7,30,90,180,365]));expect(results.every(x=>x.registryCounts.products===32&&x.registryCounts.recipes===32&&x.saleCoin>=0)).toBe(true)});it("keeps milestone rewards a minority of ordinary long-term sale income",()=>{const result=runBakerySimulation(scenario);expect(result.milestoneCoin).toBeLessThan(result.saleCoin)})});
