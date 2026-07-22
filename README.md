@@ -96,7 +96,7 @@ npm.cmd run build
 
 The app uses client-side view state rather than server routes. Vite is configured with a relative base locally and a repository base path when `GITHUB_REPOSITORY` is present.
 
-For a project page, build the app and publish `dist`.
+The `Deploy GitHub Pages` workflow builds the app on pushes to `main` and publishes `dist` through GitHub's Pages artifact deployment. GitHub Pages must use **GitHub Actions** as its source. The browser-safe `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` values are supplied through repository Actions variables.
 
 The production build keeps launch-critical Task and navigation code eager. The less frequently used Bakery and Settings destinations load as separate chunks with an accessible in-shell loading state; stable hash routes continue to restore those destinations directly.
 

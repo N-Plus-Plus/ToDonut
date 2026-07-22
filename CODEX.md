@@ -159,7 +159,7 @@ Diagnostics reports application/build/schema, backend/auth/sync, current and las
 
 ## GitHub Pages
 
-Vite `base` is relative locally and uses `GITHUB_REPOSITORY` during GitHub Actions builds so project-site paths work. The app does not rely on a custom server.
+Vite `base` is relative locally and uses `GITHUB_REPOSITORY` during GitHub Actions builds so project-site paths work. `.github/workflows/deploy-pages.yml` builds and uploads `dist`; Pages must use **GitHub Actions** as its source rather than serving the source branch directly. The production Supabase URL and browser-safe publishable key come from repository Actions variables. The app does not rely on a custom server.
 
 ## Encoding And Optional Destinations
 
