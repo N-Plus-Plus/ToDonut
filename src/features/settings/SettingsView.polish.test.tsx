@@ -24,6 +24,19 @@ describe("configuration reorder handle", () => {
     expect(screen.queryByRole("button", { name: "Reorder Fixed" })).toBeNull();
   });
 
+  it("marks Priority and Status rows for their mobile action grids", () => {
+    const priority = render(<ConfigRow actionLayout="priority" name="High" color="#fff" metadata={[]} index={1} count={3} move={() => undefined} edit={() => undefined} />);
+    expect(priority.container.querySelector(".status-row")).toHaveClass("status-row--priority-action-grid");
+    expect(screen.getByRole("button", { name: "Edit High" })).toHaveClass("status-row__action--edit");
+    priority.unmount();
+
+    const status = render(<ConfigRow actionLayout="status" name="Open" color="#fff" metadata={[]} index={1} count={3} move={() => undefined} edit={() => undefined} remove={() => undefined} />);
+    expect(status.container.querySelector(".status-row")).toHaveClass("status-row--status-action-grid");
+    expect(screen.getByRole("button", { name: "Move Open up" })).toHaveClass("status-row__action--up");
+    expect(screen.getByRole("button", { name: "Move Open down" })).toHaveClass("status-row__action--down");
+    expect(screen.getByRole("button", { name: "Delete Open" })).toHaveClass("status-row__action--delete");
+  });
+
   it("shows a configured status icon marker and keeps mapped state inline", () => {
     const { container } = render(<ConfigRow name="Waiting" color="gold" marker={<StatusIcon icon="circle-pause" color="gold" />} metadata={["Open"]} inlineMetadata index={0} count={1} edit={() => undefined} />);
     expect(container.querySelector(".status-icon-marker svg")).not.toBeNull();

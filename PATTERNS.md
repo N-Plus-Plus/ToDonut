@@ -1405,6 +1405,12 @@ Transient feedback timing belongs in `src/core/feedback/FeedbackHost.tsx` and `f
 
 The selected left-edge pill is a shared visual state in CSS for comparable selectable rows. Do not encode full aqua borders in individual feature components for selected rows.
 
+# 2026-07-23 mobile layout patterns
+
+Use explicit action-layout variants on shared configuration rows. CSS places Priority and Status callbacks into their requested mobile grids; do not duplicate configuration mutations in mobile-only components. Reorder-handle leading inset is a shared responsive spacing rule.
+
+Modal keyboard placement belongs in the shared Modal primitive. Derive visible height and centre shift from `window.visualViewport`, listen for viewport resize/scroll, and expose those metrics through CSS custom properties. Feature modals must not implement their own keyboard offsets.
+
 ## Optional destination loading
 
 Large, infrequently used destination components may be loaded with `React.lazy` at the app composition boundary when a measured production build shows a worthwhile initial-chunk reduction. Canonical state, domain commands, routing, navigation, mutation recovery and launch-critical Task surfaces remain eager. Each lazy destination renders inside `Suspense` with visible `role="status"` loading text and remains covered by the application error boundary. Do not create tiny destination chunks or arbitrary manual vendor chunks solely to silence Vite's size warning.

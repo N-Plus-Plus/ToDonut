@@ -21,6 +21,9 @@ Open `http://<computer-lan-ip>:5173/` on a phone connected to the same network a
 - Confirm Area cards use the same action hamburger and a long description wraps without moving the hamburger or reorder handle away from vertical centre.
 - Confirm List cards place Edit in the upper-right with Archive and Delete beneath it, and confirm expanded cards keep their reorder handles vertically centred.
 - Confirm Trash shows all four entity tabs in one row.
+- In Settings > Priorities, confirm Edit is upper-right and Up/Down share the lower row. In Statuses, confirm Up/Edit are above Down/Delete.
+- Confirm card and configuration reorder handles sit closer to the left edge and remain vertically centred.
+- Open a modal field that summons the keyboard and confirm the modal centres in the visible upper region; dismiss the keyboard and confirm the modal returns to screen centre rather than the bottom.
 - Confirm Export is absent from mobile UI and cannot receive focus while hidden.
 - Confirm the Add button sits above the dock, the Add menu opens upward, and outside tap, Escape and navigation close it.
 - Confirm representative modals fit the viewport, trap focus, close with Escape when idle and restore focus.

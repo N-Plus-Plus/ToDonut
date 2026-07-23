@@ -540,18 +540,20 @@ export function TaskRow({
             </button>
           </>
         )}
-        <button type="button" className="icon-button button ghost task-action-button" aria-label="Edit Task" title="Edit Task" onClick={() => editTask(task)}>
-          <Pencil aria-hidden="true" />
-        </button>
-        <button type="button" className="icon-button button ghost task-action-button" aria-label={`Promote ${task.title} to Project`} title="Promote to Project" onClick={() => promoteTask(task)}>
-          <PanelTopClose aria-hidden="true" />
-        </button>
-        <button type="button" className="icon-button button ghost task-action-button" aria-label="Process Task" title="Process Task" onClick={() => moveTask(task)}>
-          <BriefcaseBusiness aria-hidden="true" />
-        </button>
-        <button type="button" className="icon-button button danger task-action-button task-delete-action" aria-label="Move Task to Trash" title="Move Task to Trash" onClick={() => deleteTask(task)}>
-          <Trash2 aria-hidden="true" />
-        </button>
+        <div className="task-row-actions__core">
+          <button type="button" className="icon-button button ghost task-action-button" aria-label="Edit Task" title="Edit Task" onClick={() => editTask(task)}>
+            <Pencil aria-hidden="true" />
+          </button>
+          <button type="button" className="icon-button button ghost task-action-button" aria-label={`Promote ${task.title} to Project`} title="Promote to Project" onClick={() => promoteTask(task)}>
+            <PanelTopClose aria-hidden="true" />
+          </button>
+          <button type="button" className="icon-button button ghost task-action-button" aria-label="Process Task" title="Process Task" onClick={() => moveTask(task)}>
+            <BriefcaseBusiness aria-hidden="true" />
+          </button>
+          <button type="button" className="icon-button button danger task-action-button task-delete-action" aria-label="Move Task to Trash" title="Move Task to Trash" onClick={() => deleteTask(task)}>
+            <Trash2 aria-hidden="true" />
+          </button>
+        </div>
       </div>
     </article>
   );

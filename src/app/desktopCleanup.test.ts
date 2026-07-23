@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const styles = readFileSync(resolve(root, "src/styles.css"), "utf8");
+const styles = readFileSync(resolve(root, "src/styles.css"), "utf8").replace(/\r\n/g, "\n");
 const appSource = readFileSync(resolve(root, "src/app/App.tsx"), "utf8");
 
 describe("desktop cleanup contracts", () => {
@@ -81,5 +81,13 @@ describe("desktop cleanup contracts", () => {
     expect(styles).toContain(".project-card-row > .card-action-menu--mobile");
     expect(styles).toContain(".reference-list-row__actions .list-card-action--edit { grid-column: 2; grid-row: 1; }");
     expect(styles).toContain(".hidden-tabs { width: 100%; grid-template-columns: repeat(4, minmax(0, 1fr));");
+  });
+
+  it("uses compact configuration grids, reduced leading inset and centred visual-viewport modals", () => {
+    expect(styles).toContain(".status-row--priority-action-grid .status-row__action--edit { grid-column: 2; grid-row: 1; }");
+    expect(styles).toContain(".status-row--status-action-grid .status-row__action--delete { grid-column: 2; grid-row: 2; }");
+    expect(styles).toContain(".list-browser__row { padding-inline-start: var(--space-2); }");
+    expect(styles).toContain("transform: translateY(var(--modal-centre-shift, 0));");
+    expect(styles).not.toContain(".modal-backdrop { align-items: end;");
   });
 });

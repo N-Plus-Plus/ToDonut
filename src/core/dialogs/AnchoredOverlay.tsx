@@ -2,12 +2,24 @@ import { CSSProperties, ReactNode, RefObject, useEffect, useLayoutEffect, useRef
 import { createPortal } from "react-dom";
 
 export type OverlayAlignment = "start" | "end";
+export type OverlayPlacement = "vertical" | "left";
 
 export function anchoredOverlayPosition(anchor: Pick<DOMRect, "top" | "left" | "right" | "bottom">, overlay: Pick<DOMRect, "width" | "height">, viewport: { width: number; height: number }, alignment: OverlayAlignment = "start", gap = 6): { top: number; left: number } {
   const fitsBelow = anchor.bottom + gap + overlay.height <= viewport.height - gap;
   const proposedTop = fitsBelow ? anchor.bottom + gap : anchor.top - gap - overlay.height;
   const maxTop = Math.max(gap, viewport.height - overlay.height - gap);
   const proposedLeft = alignment === "end" ? anchor.right - overlay.width : anchor.left;
+  const maxLeft = Math.max(gap, viewport.width - overlay.width - gap);
+  return {
+    top: Math.min(Math.max(proposedTop, gap), maxTop),
+    left: Math.min(Math.max(proposedLeft, gap), maxLeft),
+  };
+}
+
+export function leftAnchoredOverlayPosition(anchor: Pick<DOMRect, "top" | "left" | "right" | "bottom">, overlay: Pick<DOMRect, "width" | "height">, viewport: { width: number; height: number }, gap = 6): { top: number; left: number } {
+  const proposedTop = anchor.top + ((anchor.bottom - anchor.top) - overlay.height) / 2;
+  const maxTop = Math.max(gap, viewport.height - overlay.height - gap);
+  const proposedLeft = anchor.left - gap - overlay.width;
   const maxLeft = Math.max(gap, viewport.width - overlay.width - gap);
   return {
     top: Math.min(Math.max(proposedTop, gap), maxTop),
@@ -27,7 +39,7 @@ function effectiveCssZoom(element: HTMLElement): number {
   return Number.isFinite(rootZoom) && rootZoom > 0 ? rootZoom : 1;
 }
 
-export function AnchoredOverlay({ anchorRef, children, className, onClose, alignment = "start", matchAnchorWidth = false }: { anchorRef: RefObject<HTMLElement | null>; children: ReactNode; className: string; onClose: () => void; alignment?: OverlayAlignment; matchAnchorWidth?: boolean }) {
+export function AnchoredOverlay({ anchorRef, children, className, onClose, alignment = "start", placement = "vertical", matchAnchorWidth = false }: { anchorRef: RefObject<HTMLElement | null>; children: ReactNode; className: string; onClose: () => void; alignment?: OverlayAlignment; placement?: OverlayPlacement; matchAnchorWidth?: boolean }) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
   const [style, setStyle] = useState<CSSProperties>({ visibility: "hidden" });
@@ -43,7 +55,9 @@ export function AnchoredOverlay({ anchorRef, children, className, onClose, align
       const matchedWidth = matchAnchorWidth ? anchorRect.width / cssZoom : undefined;
       if (matchedWidth) overlay.style.width = `${matchedWidth}px`;
       const overlayRect = overlay.getBoundingClientRect();
-      const position = anchoredOverlayPosition(anchorRect, overlayRect, { width: window.innerWidth, height: window.innerHeight }, alignment);
+      const position = placement === "left"
+        ? leftAnchoredOverlayPosition(anchorRect, overlayRect, { width: window.innerWidth, height: window.innerHeight })
+        : anchoredOverlayPosition(anchorRect, overlayRect, { width: window.innerWidth, height: window.innerHeight }, alignment);
       setStyle({
         ...unscaleAnchoredOverlayPosition(position, cssZoom),
         width: matchedWidth,
@@ -56,7 +70,7 @@ export function AnchoredOverlay({ anchorRef, children, className, onClose, align
       window.removeEventListener("resize", position);
       window.removeEventListener("scroll", position, true);
     };
-  }, [alignment, anchorRef, matchAnchorWidth]);
+  }, [alignment, anchorRef, matchAnchorWidth, placement]);
 
   useEffect(() => {
     const onPointerDown = (event: PointerEvent) => {

@@ -45,7 +45,7 @@ describe("dormant Project colour presentation", () => {
     expect(appSource).not.toContain('style={{ "--project-colour": project.color }');
     expect(appSource).toContain("color: projectColor");
     expect(styles).toContain(".project-row--colour-accent");
-    expect(appSource).toContain('project-row project-row--colour-accent project-row--reorderable');
+    expect(appSource).toContain('project-row area-card-row project-row--colour-accent project-row--reorderable');
   });
 });
 
@@ -416,7 +416,7 @@ describe("Reference List row layout", () => {
   it("uses medium-weight primary white Project card titles", () => {
     const styles = readFileSync(resolve(root, "src/styles.css"), "utf8");
     expect(styles).toContain(".project-row__title > .entity-title-text");
-    expect(styles).toContain("color: var(--colour-text);\n  font: inherit;\n  font-weight: 500;");
+    expect(styles.replace(/\r\n/g, "\n")).toContain("color: var(--colour-text);\n  font: inherit;\n  font-weight: 500;");
   });
 
   it("renders handle, text block and one right-aligned action group in order", () => {
