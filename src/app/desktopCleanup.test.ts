@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const styles = readFileSync(resolve(root, "src/styles.css"), "utf8");
+const styles = readFileSync(resolve(root, "src/styles.css"), "utf8").replace(/\r\n/g, "\n");
 const appSource = readFileSync(resolve(root, "src/app/App.tsx"), "utf8");
 
 describe("desktop cleanup contracts", () => {
@@ -46,5 +46,48 @@ describe("desktop cleanup contracts", () => {
     expect(appSource).toContain('addLabel="+ Add"');
     expect(appSource).toContain('addAriaLabel="Add Tag filter"');
     expect(styles).toContain(".view-controls__filter-row");
+  });
+
+  it("keeps mobile filters collapsed behind the top-bar Filter disclosure", () => {
+    expect(appSource).toContain("mobileFiltersOpen");
+    expect(appSource).toContain('aria-label={mobileFiltersOpen ? "Hide filters" : "Show filters"}');
+    expect(appSource).toContain("<Filter aria-hidden=\"true\" />");
+    expect(styles).toContain(".workspace:not(.mobile-filters-open) .view-controls { display: none; }");
+    expect(styles).toContain("justify-content: space-between;");
+  });
+
+  it("keeps the narrow top bar on one row with right-aligned actions", () => {
+    expect(styles).toContain("grid-template-columns: minmax(0, 1fr) auto;");
+    expect(styles).toContain(".topbar-actions { display: flex; justify-content: flex-end; }");
+    expect(styles).toContain(".application-menu__panel");
+    expect(styles).toContain("right: 0;");
+  });
+
+  it("uses a two-column mobile grid for the four core Task actions", () => {
+    expect(styles).toContain(".task-row-actions__core");
+    expect(styles).toContain("grid-template-columns: repeat(2, var(--size-icon-button-sm));");
+  });
+
+  it("keeps fixed mobile overlays out of document flow and reserves dock clearance once", () => {
+    expect(styles).toContain(".fab-wrap { position: fixed;");
+    expect(styles).toContain(".app-shell { grid-template-columns: 1fr; height: auto; min-height: 100vh; overflow: visible; }");
+    expect(styles).toContain(".workspace { height: auto; overflow: visible; padding:");
+  });
+
+  it("uses the mobile card action patterns and four-column Trash tabs", () => {
+    expect(appSource).toContain("export function CardActionMenu");
+    expect(appSource).toContain('placement="left"');
+    expect(appSource).toContain("area-card-row");
+    expect(styles).toContain(".project-card-row > .card-action-menu--mobile");
+    expect(styles).toContain(".reference-list-row__actions .list-card-action--edit { grid-column: 2; grid-row: 1; }");
+    expect(styles).toContain(".hidden-tabs { width: 100%; grid-template-columns: repeat(4, minmax(0, 1fr));");
+  });
+
+  it("uses compact configuration grids, reduced leading inset and centred visual-viewport modals", () => {
+    expect(styles).toContain(".status-row--priority-action-grid .status-row__action--edit { grid-column: 2; grid-row: 1; }");
+    expect(styles).toContain(".status-row--status-action-grid .status-row__action--delete { grid-column: 2; grid-row: 2; }");
+    expect(styles).toContain(".list-browser__row { padding-inline-start: var(--space-2); }");
+    expect(styles).toContain("transform: translateY(var(--modal-centre-shift, 0));");
+    expect(styles).not.toContain(".modal-backdrop { align-items: end;");
   });
 });

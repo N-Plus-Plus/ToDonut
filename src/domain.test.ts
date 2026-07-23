@@ -253,7 +253,7 @@ describe("domain foundations", () => {
   });
 
   it("keeps the mobile dock pages in launch order", () => {
-    expect(mobileDock[0].map((item) => item.label)).toEqual(["Today", "Inbox", "Tasks", "Lists", "Projects"]);
-    expect(mobileDock[1].map((item) => item.label)).toEqual(["Upcoming", "Overdue", "Someday", "Trash", "Settings"]);
+    expect(mobileDock[0].map((item) => item.label)).toEqual(["Today", "Inbox", "Tasks", "Lists", "Projects", "Upcoming"]);
+    expect(mobileDock[1].map((item) => item.label)).toEqual(["Areas", "Overdue", "Someday", "Trash", "Bakery", "Settings"]);
   });
 });

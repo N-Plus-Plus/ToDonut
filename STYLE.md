@@ -324,6 +324,10 @@ Mobile uses a single-column shell, bottom navigation, `--space-4` to `--space-5`
 
 Validate at narrow phone, ordinary phone, tablet width, standard desktop, the `2000px` scale boundary and an ultra-wide desktop. Check no horizontal scrolling, clipped controls, inconsistent button heights or tag geometry, poor line lengths, modal usability or anchored-overlay drift.
 
+Mobile card leading padding is intentionally half the ordinary card inset where a reorder handle leads the row. Handles remain vertically centred. Priority actions form a right-aligned Edit-over-Up/Down grid; Status actions form a right-aligned Up/Edit-over-Down/Delete grid.
+
+Narrow-phone modals remain centred rather than bottom docked. Use visual-viewport height and offset so the modal centres in the keyboard-visible region, then returns to full-screen centre when the keyboard closes.
+
 ## Accessibility
 
 All interactive elements must be semantic buttons, links, inputs, or controls. Icon-only controls require accessible names. Focus-visible must be obvious. Text contrast must remain readable in the subdued monochrome theme. Colour-coded state must also include text, icon, shape, or position. Touch targets on mobile must be at least `44px` where the control is primary or frequent.

@@ -3185,6 +3185,14 @@ Parent/child Task relationship creation, assignment and movement are disabled in
 
 Must Do Today is disabled in launch-candidate UI and command paths. New and saved Tasks keep the stored compatibility field false, Today no longer has a Must Do Today section, and Task rows/filters do not expose the flag. The feature should be revisited as a high-priority roadmap item with clear interaction rules against due dates and future scheduling.
 
+# 2026-07-23 mobile layout addendum
+
+Mobile Tasks share a two-by-two action grid. Lists place Edit above Archive and Move to Trash. Projects and Areas use a vertically centred hamburger whose labelled actions open to the left and close after selection, outside tap or Escape. Reorder handles use a reduced leading inset and remain centred against the complete card.
+
+Priority configuration places Edit alone in the upper-right with Up and Down beneath it. Status configuration places Up and Edit in the upper row and Down and Delete in the lower row. Both action grids remain right aligned.
+
+Mobile dialogs centre in the current visual viewport: with the software keyboard open this places their centre halfway down the visible upper region; after the keyboard closes they return to screen centre. They are not bottom docked.
+
 Visible product language for schedule generation is `Schedule`. Internal recurrence type names and route keys may remain for compatibility, but user-facing labels should not say `Recurrence` or `recurrence Schedule`. Creating a Schedule from a Task uses the Task only as a prefill source for an independent Schedule template; the Schedule does not belong to the source Task.
 
 Task editor Details now use Basics, More and Checklist. Basics contains Status, Priority, Due Date, Tags and Description. More contains Area/s, Project, Reveal On and an existing-Task `Create Schedule` action where valid. Across editable screens and modals, Area precedes Project/Destination whenever both controls coexist.

@@ -62,6 +62,9 @@ After reading this file, read CODEX.md next.
 - Read-only Activity History inside Task, Project, Area and List editors. Task editor History appears as an edit-only Details tab, and shared disclosure headings render uppercase.
 - The desktop sidebar width is exactly `10.5rem`; the tagline wraps beneath the ToDonut title. The application hamburger is top-aligned with the page title and uses a larger menu icon.
 - The desktop sidebar fills the viewport and scrolls independently from the main workspace, so long pages do not move its navigation. Bakery follows Settings at the normal option gap, and reduced-height windows preserve the complete brand block before navigation begins. Mobile retains normal document scrolling.
+- Mobile navigation uses two six-item dock pages: Today, Inbox, Tasks, Lists, Projects and Upcoming; then Areas, Overdue, Someday, Trash, Bakery and Settings. Task filters start collapsed behind the title-row Filter icon.
+- Mobile cards reserve dock/FAB clearance once. Tasks use a two-by-two action grid, Lists place Edit above Archive/Delete, and Projects/Areas use left-opening card action menus. Reorder handles use reduced leading inset and stay vertically centred.
+- Mobile Priority actions place Edit above Up/Down; Status actions place Up/Edit above Down/Delete. Dialogs track the visual viewport, centring within the keyboard-visible region and returning to screen centre when the keyboard closes.
 - GitHub Pages-compatible Vite build.
 
 ## Intentionally Deferred

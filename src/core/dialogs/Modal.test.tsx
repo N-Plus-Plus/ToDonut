@@ -2,7 +2,7 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { Modal } from "./Modal";
+import { Modal, modalViewportMetrics } from "./Modal";
 
 describe("Modal", () => {
   afterEach(() => cleanup());
@@ -36,5 +36,16 @@ describe("Modal", () => {
 
     expect(description).toHaveFocus();
     expect(description).toHaveValue("Area notes");
+  });
+
+  it("centres in the visible keyboard viewport and returns to screen centre when it expands", () => {
+    expect(modalViewportMetrics(800, { height: 400, offsetTop: 0 })).toEqual({
+      height: 400,
+      centreShift: -200,
+    });
+    expect(modalViewportMetrics(800, { height: 800, offsetTop: 0 })).toEqual({
+      height: 800,
+      centreShift: 0,
+    });
   });
 });

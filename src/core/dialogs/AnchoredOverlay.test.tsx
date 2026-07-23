@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { anchoredOverlayPosition, unscaleAnchoredOverlayPosition } from "./AnchoredOverlay";
+import { anchoredOverlayPosition, leftAnchoredOverlayPosition, unscaleAnchoredOverlayPosition } from "./AnchoredOverlay";
 
 describe("anchored overlay positioning", () => {
   it("flips above and clamps to the viewport", () => {
@@ -18,6 +18,14 @@ describe("anchored overlay positioning", () => {
       { width: 320, height: 600 },
       "end",
     )).toEqual({ top: 86, left: 6 });
+  });
+
+  it("positions a card action menu to the left and vertically clamps it", () => {
+    expect(leftAnchoredOverlayPosition(
+      { top: 540, bottom: 580, left: 270, right: 310 },
+      { width: 180, height: 220 },
+      { width: 320, height: 600 },
+    )).toEqual({ top: 374, left: 84 });
   });
 
   it("converts scaled viewport coordinates back to CSS positions under interface zoom", () => {

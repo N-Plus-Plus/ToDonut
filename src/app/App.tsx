@@ -7,11 +7,11 @@ import {
   ChevronDown,
   ChevronUp,
   CircleDot,
-  Donut,
   Download,
   Eye,
   EyeClosed,
   FileStack,
+  Filter,
   Flag,
   GripVertical,
   Layers3,
@@ -124,6 +124,7 @@ import {
   ConfirmationProvider,
   useConfirmation,
 } from "../core/dialogs/confirmation";
+import { AnchoredOverlay } from "../core/dialogs/AnchoredOverlay";
 import { Modal } from "../core/dialogs/Modal";
 import {
   MutationCoordinator,
@@ -412,6 +413,7 @@ function Application() {
   const [scheduleEditor, setScheduleEditor] =
     useState<ScheduleEditorState>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [taskFilters, setTaskFilters] = useState<TaskFilters>({});
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(
@@ -568,6 +570,7 @@ function Application() {
   useEffect(() => {
     runRouteCleanup([
       () => setAddOpen(false),
+      () => setMobileFiltersOpen(false),
       () => setActiveTaskId(null),
       () => setTaskFilters({}),
       () => {
@@ -896,6 +899,8 @@ function Application() {
   const detailBackTarget = entityDetailBackTarget(selectedList?.id ?? null, selectedProject?.id ?? null, selectedArea?.id ?? null);
   const settingsBackVisible = view === "settings" && settingsSubsectionShowsBack(settingsSubsection);
   const taskViewId = toTaskViewId(view);
+  const mobileFilterControlsAvailable =
+    taskViewId !== null || view === "projects" || view === "areas";
   const detailTaskViewId: TaskViewId | null = selectedProject
     ? "project-detail"
     : selectedArea
@@ -1670,7 +1675,7 @@ function Application() {
           </nav>
         )}
       </aside>
-      <section className="workspace">
+      <section className={`workspace ${mobileFiltersOpen ? "mobile-filters-open" : ""}`}>
         <header className="topbar">
           <div>
             {pending === "failed" && (
@@ -1693,6 +1698,18 @@ function Application() {
             </div>
           </div>
           <div className="topbar-actions">
+            {mobileFilterControlsAvailable && (
+              <button
+                type="button"
+                className={`icon-button button ghost mobile-filter-toggle ${mobileFiltersOpen ? "is-open" : ""}`}
+                aria-label={mobileFiltersOpen ? "Hide filters" : "Show filters"}
+                aria-expanded={mobileFiltersOpen}
+                aria-controls="active-view-controls"
+                onClick={() => setMobileFiltersOpen((value) => !value)}
+              >
+                <Filter aria-hidden="true" />
+              </button>
+            )}
             <ApplicationMenu
               view={view}
               createMultipleListItems={
@@ -1706,7 +1723,6 @@ function Application() {
                   : null
               }
               exportData={downloadExport}
-              openBakery={() => navigate("bakery")}
             />
           </div>
         </header>
@@ -2629,7 +2645,7 @@ function ViewControls({
   const groupingOptions = groupOptionsForView(viewId);
   const [moreOpen, setMoreOpen] = useState(false);
   return (
-    <div className="view-controls">
+    <div className="view-controls" id="active-view-controls">
       <label className="view-control-field" title="Sort">
         <span className="sr-only">Sort</span>
         <ArrowUpDown aria-hidden="true" />
@@ -3306,13 +3322,11 @@ function ApplicationMenu({
   createMultipleListItems,
   signOut,
   exportData,
-  openBakery,
 }: {
   view: ViewId;
   createMultipleListItems: (() => void) | null;
   signOut: (() => void) | null;
   exportData: () => void;
-  openBakery: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
@@ -3377,15 +3391,6 @@ function ApplicationMenu({
           >
             <Download aria-hidden="true" />
             <span>Export</span>
-          </button>
-          <button
-            type="button"
-            className="application-menu__item application-menu__item--mobile"
-            role="menuitem"
-            onClick={() => choose(openBakery)}
-          >
-            <Donut aria-hidden="true" />
-            <span>Bakery</span>
           </button>
           {createMultipleListItems && (
             <button
@@ -4917,7 +4922,7 @@ export function ListRow({
         {editList && (
           <button
             type="button"
-            className="icon-button button ghost"
+            className="icon-button button ghost list-card-action--edit"
             aria-label={`Edit ${list.title}`}
             title="Edit"
             onClick={editList}
@@ -4928,7 +4933,7 @@ export function ListRow({
         {archiveList && (
           <button
             type="button"
-            className="icon-button button ghost"
+            className="icon-button button ghost list-card-action--archive"
             aria-label={`Archive ${list.title}`}
             title="Archive"
             onClick={archiveList}
@@ -4939,7 +4944,7 @@ export function ListRow({
         {deleteList && (
           <button
             type="button"
-            className="icon-button button danger"
+            className="icon-button button danger list-card-action--delete"
             aria-label={`Move ${list.title} to Trash`}
             title="Move to Trash"
             onClick={deleteList}
@@ -5382,7 +5387,7 @@ function ProjectAreaBrowserToolbar({
   toggle?: ReactNode;
 }) {
   return (
-    <div className="view-controls project-area-controls">
+    <div className="view-controls project-area-controls" id="active-view-controls">
       <label className="view-control-field" title="Sort">
         <span className="sr-only">Sort</span>
         <ArrowUpDown aria-hidden="true" />
@@ -5443,7 +5448,41 @@ function UnavailableEntity({ title, browserLabel, back }: { title: string; brows
   return <section className="unavailable-entity" role="status"><h3>{title}</h3><p>This saved link no longer points to an available item. It may have been deleted or changed after the link was saved.</p><div className="row-icon-actions">{history.length > 1 && <Button variant="ghost" onClick={() => history.back()}>Back</Button>}<Button variant="primary" onClick={back}>{browserLabel}</Button></div></section>;
 }
 
-function ProjectRow({
+interface CardActionMenuItem {
+  id: string;
+  label: string;
+  icon: ReactNode;
+  onSelect: () => void;
+  danger?: boolean;
+}
+
+export function CardActionMenu({ label, actions }: { label: string; actions: CardActionMenuItem[] }) {
+  const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setOpen(false);
+      triggerRef.current?.focus();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open]);
+
+  return <div className="card-action-menu card-action-menu--mobile">
+    <button ref={triggerRef} type="button" className={`icon-button button ghost card-action-menu__trigger ${open ? "selected" : ""}`} aria-label={label} aria-haspopup="menu" aria-expanded={open} title="Actions" onClick={() => setOpen((current) => !current)}><Menu aria-hidden="true" /></button>
+    {open && <AnchoredOverlay anchorRef={triggerRef} className="card-action-menu__panel" placement="left" onClose={() => setOpen(false)}>
+      <div className="card-action-menu__items" role="menu" aria-label={label}>
+        {actions.map((action) => <button key={action.id} type="button" role="menuitem" className={`card-action-menu__item button ghost ${action.danger ? "danger" : ""}`} onClick={() => { setOpen(false); action.onSelect(); }}>{action.icon}<span>{action.label}</span></button>)}
+      </div>
+    </AnchoredOverlay>}
+  </div>;
+}
+
+export function ProjectRow({
   data,
   project,
   open,
@@ -5482,6 +5521,13 @@ function ProjectRow({
   const progressMeta = progress.total
     ? `${progress.percentClosed}% closed · ${progress.open} open · ${progress.completed} completed`
     : "No actionable Tasks";
+  const mobileActions: CardActionMenuItem[] = [
+    ...(!closed && !project.archivedAt ? [{ id: "edit", label: "Edit", icon: <Pencil aria-hidden="true" />, onSelect: edit }] : []),
+    ...(!project.archivedAt ? [{ id: "demote", label: "Demote to Task", icon: <PanelBottomClose aria-hidden="true" />, onSelect: demote }] : []),
+    { id: "complete", label: closed ? "Reopen" : "Complete", icon: <CheckCheck aria-hidden="true" />, onSelect: complete },
+    { id: "archive", label: "Archive", icon: <Archive aria-hidden="true" />, onSelect: archive },
+    { id: "delete", label: "Move to Trash", icon: <Trash2 aria-hidden="true" />, onSelect: deleteProject, danger: true },
+  ];
   return (
     <article
       className={`list-browser__row project-row project-card-row ${allowReorder ? "project-row--reorderable" : ""} ${closed ? "completed-project" : ""}`}
@@ -5529,7 +5575,7 @@ function ProjectRow({
           </span>
         )}
       </button>
-      <div className="row-icon-actions">
+      <div className="row-icon-actions row-icon-actions--desktop">
         {!closed && !project.archivedAt && (
           <button
             type="button"
@@ -5571,11 +5617,12 @@ function ProjectRow({
           <Trash2 aria-hidden="true" />
         </button>
       </div>
+      <CardActionMenu label={`Open actions for ${project.title}`} actions={mobileActions} />
     </article>
   );
 }
 
-function AreaRow({
+export function AreaRow({
   data,
   area,
   open,
@@ -5604,7 +5651,7 @@ function AreaRow({
   const areaMeta = area.description || `${projects.length} Projects · ${tasks.length} standalone Tasks · ${lists.length} direct Lists`;
   return (
     <article
-      className="list-browser__row project-row project-row--colour-accent project-row--reorderable"
+      className="list-browser__row project-row area-card-row project-row--colour-accent project-row--reorderable"
       style={{ "--project-colour": area.color } as CSSProperties}
     >
       <button
@@ -5631,7 +5678,7 @@ function AreaRow({
         <strong className="project-row__title">{area.title}</strong>
         <span className="project-row__meta">{areaMeta}</span>
       </button>
-      <div className="row-icon-actions">
+      <div className="row-icon-actions row-icon-actions--desktop">
         <button
           type="button"
           className="icon-button button ghost"
@@ -5657,6 +5704,11 @@ function AreaRow({
           <Trash2 aria-hidden="true" />
         </button>
       </div>
+      <CardActionMenu label={`Open actions for ${area.title}`} actions={[
+        { id: "edit", label: "Edit", icon: <Pencil aria-hidden="true" />, onSelect: edit },
+        { id: "archive", label: "Archive", icon: <Archive aria-hidden="true" />, onSelect: archiveArea },
+        { id: "delete", label: "Move to Trash", icon: <Trash2 aria-hidden="true" />, onSelect: deleteArea, danger: true },
+      ]} />
     </article>
   );
 }

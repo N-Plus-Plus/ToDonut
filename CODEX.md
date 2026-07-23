@@ -129,6 +129,10 @@ Desktop shell scrolling is split between the full-height sidebar and workspace. 
 
 Ultra-wide presentation uses a root CSS interface zoom of `1.3` from a `2000px` viewport width and resets naturally to `1` below that media-query threshold. The full-height shell uses the inverse height at that breakpoint so its zoomed result remains one dynamic viewport tall. This default compounds with ordinary browser zoom. Body-portalled `AnchoredOverlay` coordinates and matched widths divide by the effective CSS zoom after viewport clamping so custom dropdowns stay attached to their triggers.
 
+Mobile card and configuration layouts are shared responsive variants, not separate mutation paths. Tasks use the shared two-by-two core-action grid; Lists place Edit over Archive/Delete; Projects and Areas use the shared left-opening card hamburger. Priority configuration places Edit above Up/Down, while Status configuration places Up/Edit above Down/Delete. Mobile card and Settings reorder handles use the reduced leading inset and remain vertically centred.
+
+Mobile modal placement follows `window.visualViewport`. The dialog centre tracks the visible viewport centre while the keyboard is open and returns to the full-screen centre when it closes; do not restore bottom-docked narrow-phone modals. Fixed FAB layers do not add document-flow height, and dock/FAB clearance is reserved once on the workspace.
+
 Creation is driven by one shared contextual Add registry rendered by the persistent lower-right floating Add button. Project, List and Task are permanent actions in visual top-to-bottom order; contextual actions such as List Item, Status, Tag, Tag Group, Area and Schedule are appended closer to the FAB only when the active context and capability support a complete creation flow. Child Task is disabled for the launch candidate. The older top-of-screen quick-add field is intentionally removed.
 
 ## Persistence And Concurrency
