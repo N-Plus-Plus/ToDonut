@@ -1,4 +1,4 @@
-import { ReactNode, RefObject, useEffect, useRef } from "react";
+import { CSSProperties, ReactNode, RefObject, useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 
 const focusableSelector = "button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [href], [tabindex]:not([tabindex='-1'])";
@@ -6,6 +6,15 @@ const focusableSelector = "button:not(:disabled), input:not(:disabled), select:n
 function orderedFocusable(root: HTMLElement | null): HTMLElement[] {
   const focusable = Array.from(root?.querySelectorAll<HTMLElement>(focusableSelector) ?? []);
   return [...focusable.filter((item) => item.dataset.dialogClose !== "true"), ...focusable.filter((item) => item.dataset.dialogClose === "true")];
+}
+
+export function modalViewportMetrics(layoutHeight: number, visualViewport?: { height: number; offsetTop: number } | null): { height: number; centreShift: number } {
+  const height = visualViewport?.height ?? layoutHeight;
+  const visibleCentre = (visualViewport?.offsetTop ?? 0) + height / 2;
+  return {
+    height,
+    centreShift: visibleCentre - layoutHeight / 2,
+  };
 }
 
 export function Modal({
@@ -26,6 +35,10 @@ export function Modal({
   const onCloseRef = useRef(onClose);
   const closeDisabledRef = useRef(closeDisabled);
   const initialFocusRefOnOpen = useRef(initialFocusRef);
+  const [viewportMetrics, setViewportMetrics] = useState(() => modalViewportMetrics(
+    window.innerHeight,
+    window.visualViewport,
+  ));
 
   onCloseRef.current = onClose;
   closeDisabledRef.current = closeDisabled;
@@ -63,8 +76,33 @@ export function Modal({
     };
   }, []);
 
+  useEffect(() => {
+    const updateViewportMetrics = () => setViewportMetrics(modalViewportMetrics(
+      window.innerHeight,
+      window.visualViewport,
+    ));
+    const visualViewport = window.visualViewport;
+    updateViewportMetrics();
+    window.addEventListener("resize", updateViewportMetrics);
+    visualViewport?.addEventListener("resize", updateViewportMetrics);
+    visualViewport?.addEventListener("scroll", updateViewportMetrics);
+    return () => {
+      window.removeEventListener("resize", updateViewportMetrics);
+      visualViewport?.removeEventListener("resize", updateViewportMetrics);
+      visualViewport?.removeEventListener("scroll", updateViewportMetrics);
+    };
+  }, []);
+
   const safeClose = () => { if (!closeDisabled) onClose(); };
-  return <div className="modal-backdrop" role="presentation" onPointerDown={(event) => { if (event.target === event.currentTarget) safeClose(); }}>
+  return <div
+    className="modal-backdrop"
+    role="presentation"
+    style={{
+      "--modal-visual-height": `${viewportMetrics.height}px`,
+      "--modal-centre-shift": `${viewportMetrics.centreShift}px`,
+    } as CSSProperties}
+    onPointerDown={(event) => { if (event.target === event.currentTarget) safeClose(); }}
+  >
     <div ref={dialogRef} className="modal" role="dialog" aria-modal="true" aria-labelledby={titleId.current}>
       <div className="modal-header"><h3 id={titleId.current}>{title}</h3><button type="button" className="icon-button button ghost" aria-label="Close dialog" data-dialog-close="true" onClick={safeClose} disabled={closeDisabled}><X aria-hidden="true" /></button></div>
       {children}

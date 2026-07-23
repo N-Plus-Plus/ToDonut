@@ -31,7 +31,7 @@ Before making any UI, CSS, layout, component, icon or visual-state change, read 
 - Frontend: Vite + React + TypeScript.
 - Routing: in-app view state only, so GitHub Pages project-site hosting does not require server rewrites.
 - Styling: ordinary CSS with a dark-only tokenized visual system documented in `STYLE.md`. UI chrome is true monochrome; the supplied colour palette is reserved for statuses, priorities, tags and entity accents.
-- Icons: Lucide React. Local dependencies must match the lockfile; rerun `npm.cmd install` after pulling dependency changes. Quantifier validation and dynamic rendering require the locked 0.577.x catalogue for names such as `battery-plus`.
+- Icons: Lucide React.
 - Persistence: app code depends on `PersistenceProvider`.
 - Technical implementation patterns: `PATTERNS.md`.
 - Source boundaries: app composition in `src/app`, cross-cutting services in `src/core`, feature screens in `src/features`, provider implementations in `src/infrastructure`, reusable visual primitives in `src/shared`, and pure domain model/rules in `src/domain.ts` plus future `src/domain/` modules.
@@ -75,7 +75,7 @@ Projects and Areas use pure selectors and commands in `src/features/projects/pro
 
 Project-card, Project-detail and aggregate-Task progress summaries render through shared `TaskProgressMeta`. It leads percent/open/completed/cancelled or `No actionable Tasks` text with the established navigation `ListTodo` icon and reuses the baseline-safe inline metadata structure and secondary action-icon colour.
 
-Project browser cards keep their action group in the same grid row as the text through tablet and wide-mobile widths. The action group stacks beneath the text only at the narrow-card breakpoint.
+Project browser cards keep their inline action group in the same grid row as the text on desktop. Mobile replaces that group with the shared vertically centred card hamburger and left-opening labelled action menu.
 
 Project browser-card title text is primary white at medium (`500`) weight; the configured coloured Status icon remains immediately before it and configured Quantifier icons remain immediately after it.
 
@@ -103,7 +103,7 @@ Task date-picker overlays use fixed portal positioning, prefer below then above,
 
 Task hierarchy rendering lives in `src/features/tasks/TaskSection.tsx` as the shared recursive hierarchy over the shared Task row. Domain hierarchy behaviour remains in `src/domain.ts`: parent validation, aggregate conversion, derived aggregate progress, automatic aggregate closure, aggregate completion/reopen cascades, child reopening with ancestor reopening, validated full-subtree movement, parent clearing, sibling ordering and Task subtree soft-delete/restore. Do not add per-screen tree implementations.
 
-Root Task rows must align with their section heading and empty/filtered states. Apply hierarchy indentation only to descendants, and keep the selected row pill absolutely positioned so it does not consume row grid width. Compact rows use one shared grid: drag handle, Priority-coloured completion ring, title/metadata and the right-aligned action group. Status, Due and Project metadata are muted text with `Status:`, `Due:` and `Project:` labels, not pills; Status includes a small status-colour marker. Edit, Process and Delete stay icon-only on one row with the same square outline geometry; Delete keeps destructive styling.
+Root Task rows must align with their section heading and empty/filtered states. Apply hierarchy indentation only to descendants, and keep the selected row pill absolutely positioned so it does not consume row grid width. Compact rows use one shared grid: drag handle, Priority-coloured completion ring, title/metadata and the right-aligned action group. Status, Due and Project metadata are muted text with `Status:`, `Due:` and `Project:` labels, not pills; Status includes a small status-colour marker. Desktop core actions stay icon-only on one row with the same square outline geometry. Mobile uses a right-aligned two-column core-action grid with Edit/Promote above Process/Trash; Delete keeps destructive styling.
 
 Open leaf completion rings are empty in the centre and do not render a static checkmark. Completed leaf Tasks use the shared check drawing animation. When Show Closed is off, `TaskViewPanel` may keep a short local exiting projection mounted for the CSS completion duration plus a 250ms buffer before removing the row; this must continue to call the existing completion command and must bypass delay under `prefers-reduced-motion`.
 
@@ -111,11 +111,15 @@ Task movement must use the shared subtree command path. Parent assignment, Paren
 
 The launch UI uses `src/features/tasks/TaskMoveDialog.tsx` for single and bulk movement, including Parent destinations. Task ordering is drag-only through the shared Task row and sibling-order commands; dragging must never reparent a Task.
 
-The desktop shell opens on Today and orders primary navigation as Today, Inbox, Tasks, Lists, Projects, Upcoming, Overdue, Someday, Trash and Settings. The mobile shell opens on Today and uses a two-page bottom dock: primary page Today, Inbox, Tasks, Lists and Projects; secondary page Upcoming, Overdue, Someday, Trash and Settings. Dock page changes do not change the selected destination.
+The desktop shell opens on Today and orders primary navigation as Today, Inbox, Tasks, Lists, Projects, Upcoming, Overdue, Someday, Trash and Settings. The mobile shell opens on Today and uses a two-page, six-item bottom dock: primary page Today, Inbox, Tasks, Lists, Projects and Upcoming; secondary page Areas, Overdue, Someday, Trash, Bakery and Settings. Dock page changes do not change the selected destination.
 
 Task filtering uses `src/viewModel.ts` for AND matching and hierarchy projection. The projection exposes match, structural-ancestor and visible IDs; `TaskSection` only renders that model. Detail route entity misses use the shared unavailable state and preserve the hash until the user leaves it. Recurrence templates deliberately normalise checklist content to empty and generated Tasks resolve the current first active Status at generation time.
 
-Task view controls stay in the existing control bar. Sort and Group remain left aligned, Show Closed sits immediately before More in the right-aligned default visible controls, and the expanded More panel contains the Task Tag filter. Show Closed is represented by the EyeClosed/Eye icon toggle only; do not add a second checkbox or parallel state.
+Task view controls stay in the existing control bar. On desktop, Sort and Group remain left aligned, Show Closed sits immediately before More in the right-aligned default visible controls, and the expanded More panel contains the Task Tag filter. On mobile, the entire bar is initially hidden and the shared top-bar Filter icon immediately left of the hamburger reveals or hides it; this disclosure closes on route change. In a revealed mobile bar, the Show/Hide toggle is left aligned and More is right aligned on the same row. Show Closed is represented by the EyeClosed/Eye icon toggle only; do not add a second checkbox or parallel state.
+
+Mobile card actions use shared responsive row components rather than screen-specific card copies. Reference Lists place Edit in the upper-right with Archive and Delete beneath it. Project and Area cards replace inline action groups with a vertically centred hamburger whose viewport-clamped menu opens to the left, presents labelled stacked actions, and closes after an action, outside tap or Escape. All reorder handles align to the full card's vertical centre. Project/Area detail Tasks continue through `TaskViewPanel` and `TaskSection`, and their filters continue through the same shared `ViewControls` and app-top-bar disclosure as launch Task views.
+
+The mobile FAB and its menu remain fixed overlays. Reserve dock/FAB clearance once on `.workspace`; do not add a second outer-shell bottom reservation or allow an expanded FAB menu to change card-list scroll height. Trash presents all four entity tabs in one mobile row.
 
 Shared editor disclosure headings use the uppercase disclosure style. Task editor History is an edit-only Details tab and mounts Activity History only when that tab is selected; input labels, modal titles, tabs and body copy are not uppercased.
 
@@ -159,7 +163,7 @@ Diagnostics reports application/build/schema, backend/auth/sync, current and las
 
 ## GitHub Pages
 
-Vite `base` is relative locally and uses `GITHUB_REPOSITORY` during GitHub Actions builds so project-site paths work. `.github/workflows/deploy-pages.yml` builds and uploads `dist`; Pages must use **GitHub Actions** as its source rather than serving the source branch directly. The production Supabase URL and browser-safe publishable key come from repository Actions variables. The app does not rely on a custom server.
+Vite `base` is relative locally and uses `GITHUB_REPOSITORY` during GitHub Actions builds so project-site paths work. The app does not rely on a custom server.
 
 ## Encoding And Optional Destinations
 

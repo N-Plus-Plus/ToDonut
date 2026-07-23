@@ -1,0 +1,14 @@
+.DS_Store
+Thumbs.db
+*.log
+*.psd
+node_modules
+dist
+coverage
+.env
+.env.local
+test-results
+visual-review
+vite.config.js
+vite.config.d.ts
+supabase/.temp

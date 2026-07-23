@@ -13,33 +13,22 @@ After reading this file, read CODEX.md next.
 - [DESIGN.md](DESIGN.md): authoritative launch product behaviour.
 - [docs/architecture.md](docs/architecture.md): backend, persistence, auth, recurrence and export architecture.
 
-## Local Setup
-
-Install the lockfile dependencies before starting the app, and rerun the install after pulling dependency changes:
-
-```powershell
-npm.cmd install
-npm.cmd run dev
-```
-
-The Quantifier icon catalogue requires the locked `lucide-react` 0.577.x release; an older local `node_modules` can incorrectly reject current names such as `battery-plus`.
-
 ## Implemented Foundation
 
 - Bakery catalogue-data version 5 contains 26 purchasable ingredients and exactly 100 data-driven recipes/products. Productivity earns Dough, Sugar and Icing; Sprinkles are purchased.
 
 - Bakery Pass 3-12 foundation plus catalogue-data version 4: 18 purchased ingredients and 64 registry-driven recipes/products, schema-v6 data-driven upgrades, stable Display slots and queues, deterministic pricing and advertising, connected permanent market upgrades, timed Window/Bakery promotions, Product Spotlight consumption, authoritative discounted ordinary/bulk Pantry pack quotes, Proofing Schedule Dough windows with next-Sydney-day activation, prospective bounded market history, market intelligence, corrected Coin spending statistics, derived Reputation, idempotent milestones and a development-only balance harness.
 
-- Mobile-first app shell with Today as the landing page, a two-page bottom dock, first-class Lists, Settings and desktop navigation ordered for Today-first capture and review. Ultra-wide viewports of at least `2000px` start at a layout-aware `1.3` interface scale, return to ordinary scale below that boundary and continue to respect user browser zoom.
+- Mobile-first app shell with Today as the landing page and a two-page, six-item bottom dock. Upcoming ends the primary page; the secondary page contains Areas, Overdue, Someday, Trash, Bakery and Settings. Ultra-wide viewports of at least `2000px` start at a layout-aware `1.3` interface scale, return to ordinary scale below that boundary and continue to respect user browser zoom.
 - List, Project and Area details include a shared top-bar Back icon that unwinds the actual in-app route path, with safe landing-page fallback for direct links.
 - Shared contextual Add registry with permanent Project, List and Task actions plus runtime contextual actions such as List Item, Status, Tag, Tag Group, Area and Schedule. Child Task creation is disabled for the launch candidate pending a higher-standard parent/child reimplementation.
 - Areas, Projects, Tasks and Lists with first-class Items.
 - Shared colour-aware parent context lines show Area before Project with comma-separated titles led by the established LandPlot and FolderKanban icons; configured List colours apply to List titles without cascading to List Items.
 - List Appearance supports explicit colour removal through its blank first swatch.
-- Schedule create/edit supports blank Area plus Inbox-default Project Destination placement, coloured entity choices and a custom circular due-on-occurrence toggle; desktop Trash keeps all four compact entity tabs in one row.
+- Schedule create/edit supports blank Area plus Inbox-default Project Destination placement, coloured entity choices and a custom circular due-on-occurrence toggle; Trash keeps all four compact entity tabs in one row on desktop and mobile.
 - Checkbox-driven controls consistently use Lucide Circle off and CircleCheck on; checked entity options use their entity colour and all other checked states use mint.
 - First-class configurable Quantifiers provide Energy and Context dimensions across Tasks, Projects, Lists and Schedule templates. Settings can rename either dimension and add, rename, remove or reorder any number of options; each option may store an ordered, duplicate-preserving pipe-separated sequence of icon names from the installed Lucide catalogue. The catalogue is kept aligned with current Lucide references, including `battery-plus`. Full option names remain in selectors; configured icon sequences appear beside Project, Task and List names in definition order with accessible full names, while unconfigured options retain the dimension-icon-plus-name metadata fallback. Existing matching Tag Group assignments migrate non-destructively.
-- Separate Projects and Areas destinations with Project and Area create/edit/reorder/detail workflows, completed Project visibility, responsive Project cards that keep actions beside text whenever space permits, baseline-aligned ListTodo Project/aggregate progress metadata, Project completion cascade, Area soft deletion and in-place deleted Area restoration.
+- Separate Projects and Areas destinations with Project and Area create/edit/reorder/detail workflows, completed Project visibility, desktop inline actions and mobile left-opening card action menus, baseline-aligned ListTodo Project/aggregate progress metadata, Project completion cascade, Area soft deletion and in-place deleted Area restoration.
 - Shared Task create/edit editor with title-only creation, progressive Details tabs, Area/s before Project wherever both placement controls coexist, Project placement through a filtered text combobox with exact-title relationship resolution, Area/s placement through a compact dropdown selector, viewport-clamped Due Date and Reveal On calendar overlays, Schedule creation from existing Tasks and embedded checklists. List creation uses the same Project combobox contract. Edit mode shows existing checklist items as a read-only prompt list beneath the title while the Checklist tab owns add, edit, delete and chevron reorder controls. Parent/child placement and Must Do Today are disabled for the launch candidate.
 - Global configurable Statuses now drive both Tasks and Projects. Status configuration includes a unique palette colour and one unique Lucide circle icon; Settings rows show that coloured icon with the mapped state inline beside the name, drag-and-drop persists the exact requested order, Project cards show the icon before the title, and Status grouping uses the configured flow rather than inferred open/closed buckets.
 - Per-Project colour is temporarily dormant: existing schema values and command support are preserved, while Project create/edit omits the colour picker and Project browser rows omit the colour accent for a neutral presentation.
@@ -61,10 +50,10 @@ The Quantifier icon catalogue requires the locked `lucide-react` 0.577.x release
 - Per-view preference records, AND filter/sort/grouping helpers, desktop-only full-fidelity JSON export with build metadata, confirmed canonical revision metadata and synchronisation safety checks, and sanitised Diagnostics inside Settings.
 - Shared launch Task view selectors and controls for Today, Inbox, Tasks, Upcoming, Overdue, Someday, Project detail and Area detail, including Show Closed, Deferred sections where intentional, compact/detailed rows, sort, grouping, transient filters and bulk Task selection/actions.
 - Task view controls now include grouped Task-scoped Tag filters with AND semantics, removable active-filter chips, and structural-ancestor-preserving filtered hierarchy results.
-- The authenticated shell uses a compact application menu for Export and Sign out; Bakery stays in desktop navigation and appears in the mobile menu because it is not part of the mobile dock. The visible tagline is `Productivity with sprinkles`, and healthy backend adapter text is not shown in the ordinary header.
-- Task views default to Compact rows when no stored preference exists. Compact rows use the shared row grid: drag handle, empty Priority-coloured open completion ring, title, colon-labelled muted Status/Due/Project metadata and one right-aligned icon-only Edit, Process and Trash action row with matching outlines. Root Tasks align with section headings; only descendants receive hierarchy indentation.
+- The authenticated shell uses a compact application menu for Export and Sign out; Bakery stays in desktop navigation and appears immediately before Settings in the secondary mobile dock. On mobile, the page label, Filter disclosure and right-anchored hamburger share the top row. The visible tagline is `Productivity with sprinkles`, and healthy backend adapter text is not shown in the ordinary header.
+- Task views default to Compact rows when no stored preference exists. Compact rows use the shared row grid: drag handle, empty Priority-coloured open completion ring, title, colon-labelled muted Status/Due/Project metadata and right-aligned icon-only actions with matching outlines. Mobile arranges Edit/Promote above Process/Trash in a two-column grid; desktop keeps the horizontal group. Root Tasks align with section headings; only descendants receive hierarchy indentation.
 - Completing an open leaf Task plays the completion-ring animation and then waits a short buffer before a hidden Closed row leaves the view. Reduced-motion users receive the completed state without an artificial removal delay.
-- The More view control stays right-aligned; Show Closed uses the existing per-view preference through an EyeClosed/Eye two-state icon toggle and sits immediately before More on the default visible Task control bar. Expanded Tags use a Tags icon and `+ Add`.
+- Desktop keeps the More view control right-aligned beside the Show Closed EyeClosed/Eye toggle. Mobile initially hides view controls behind the top-bar Filter disclosure; when opened, Show/Hide remains left and More remains right on one row. Expanded Tags use a Tags icon and `+ Add`.
 - Toasts auto-dismiss after 2.5 seconds, pause while hovered/focused or during text selection, and the FAB menu stacks above toast cards. Healthy save progress and view-preference saves do not use top-screen feedback; unresolved failed mutations remain represented by the persistent recovery banner.
 - Missing or deleted List, Project and Area detail links show explicit unavailable states; Area detail omits unsupported Project ordering.
 - Schedule templates use the current ordered default open Status and intentionally exclude editable checklist templates.
@@ -73,6 +62,7 @@ The Quantifier icon catalogue requires the locked `lucide-react` 0.577.x release
 - Read-only Activity History inside Task, Project, Area and List editors. Task editor History appears as an edit-only Details tab, and shared disclosure headings render uppercase.
 - The desktop sidebar width is exactly `10.5rem`; the tagline wraps beneath the ToDonut title. The application hamburger is top-aligned with the page title and uses a larger menu icon.
 - The desktop sidebar fills the viewport and scrolls independently from the main workspace, so long pages do not move its navigation. Bakery follows Settings at the normal option gap, and reduced-height windows preserve the complete brand block before navigation begins. Mobile retains normal document scrolling.
+- Mobile card lists reserve dock/FAB clearance once on the scrolling workspace, keeping the fixed Add overlay out of document flow. List actions form a compact right-side grid, Project and Area actions use viewport-clamped card menus, reorder handles remain vertically centred, and all four Trash entity tabs fit one row.
 - GitHub Pages-compatible Vite build.
 
 ## Intentionally Deferred
@@ -107,7 +97,7 @@ npm.cmd run build
 
 The app uses client-side view state rather than server routes. Vite is configured with a relative base locally and a repository base path when `GITHUB_REPOSITORY` is present.
 
-The `Deploy GitHub Pages` workflow builds the app on pushes to `main` and publishes `dist` through GitHub's Pages artifact deployment. GitHub Pages must use **GitHub Actions** as its source. The browser-safe `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` values are supplied through repository Actions variables.
+For a project page, build the app and publish `dist`.
 
 The production build keeps launch-critical Task and navigation code eager. The less frequently used Bakery and Settings destinations load as separate chunks with an accessible in-shell loading state; stable hash routes continue to restore those destinations directly.
 

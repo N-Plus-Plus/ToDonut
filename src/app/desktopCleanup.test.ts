@@ -47,4 +47,39 @@ describe("desktop cleanup contracts", () => {
     expect(appSource).toContain('addAriaLabel="Add Tag filter"');
     expect(styles).toContain(".view-controls__filter-row");
   });
+
+  it("keeps mobile filters collapsed behind the top-bar Filter disclosure", () => {
+    expect(appSource).toContain("mobileFiltersOpen");
+    expect(appSource).toContain('aria-label={mobileFiltersOpen ? "Hide filters" : "Show filters"}');
+    expect(appSource).toContain("<Filter aria-hidden=\"true\" />");
+    expect(styles).toContain(".workspace:not(.mobile-filters-open) .view-controls { display: none; }");
+    expect(styles).toContain("justify-content: space-between;");
+  });
+
+  it("keeps the narrow top bar on one row with right-aligned actions", () => {
+    expect(styles).toContain("grid-template-columns: minmax(0, 1fr) auto;");
+    expect(styles).toContain(".topbar-actions { display: flex; justify-content: flex-end; }");
+    expect(styles).toContain(".application-menu__panel");
+    expect(styles).toContain("right: 0;");
+  });
+
+  it("uses a two-column mobile grid for the four core Task actions", () => {
+    expect(styles).toContain(".task-row-actions__core");
+    expect(styles).toContain("grid-template-columns: repeat(2, var(--size-icon-button-sm));");
+  });
+
+  it("keeps fixed mobile overlays out of document flow and reserves dock clearance once", () => {
+    expect(styles).toContain(".fab-wrap { position: fixed;");
+    expect(styles).toContain(".app-shell { grid-template-columns: 1fr; height: auto; min-height: 100vh; overflow: visible; }");
+    expect(styles).toContain(".workspace { height: auto; overflow: visible; padding:");
+  });
+
+  it("uses the mobile card action patterns and four-column Trash tabs", () => {
+    expect(appSource).toContain("export function CardActionMenu");
+    expect(appSource).toContain('placement="left"');
+    expect(appSource).toContain("area-card-row");
+    expect(styles).toContain(".project-card-row > .card-action-menu--mobile");
+    expect(styles).toContain(".reference-list-row__actions .list-card-action--edit { grid-column: 2; grid-row: 1; }");
+    expect(styles).toContain(".hidden-tabs { width: 100%; grid-template-columns: repeat(4, minmax(0, 1fr));");
+  });
 });
