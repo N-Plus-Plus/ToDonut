@@ -1,9 +1,10 @@
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ConfirmationProvider } from "../../core/dialogs/confirmation";
 import { AppData } from "../../domain";
 import { createSeedData } from "../../seed";
-import { TrashView } from "./TrashView";
+import { HiddenMode, TrashModeToggle, TrashView } from "./TrashView";
 
 describe("TrashView", () => {
   afterEach(() => cleanup());
@@ -73,5 +74,10 @@ describe("TrashView", () => {
 });
 
 function renderTrash(data: AppData, commit: ReturnType<typeof vi.fn>) {
-  return render(<ConfirmationProvider><TrashView data={data} commit={commit} /></ConfirmationProvider>);
+  return render(<ConfirmationProvider><TrashHarness data={data} commit={commit} /></ConfirmationProvider>);
+}
+
+function TrashHarness({ data, commit }: { data: AppData; commit: ReturnType<typeof vi.fn> }) {
+  const [mode, setMode] = useState<HiddenMode>("deleted");
+  return <><TrashModeToggle mode={mode} setMode={setMode} /><TrashView data={data} commit={commit} mode={mode} setMode={setMode} /></>;
 }

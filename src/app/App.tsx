@@ -13,8 +13,11 @@ import {
   FileStack,
   Filter,
   Flag,
+  FolderKanban,
   GripVertical,
+  LandPlot,
   Layers3,
+  ListOrdered,
   ListFilter,
   LogOut,
   Menu,
@@ -124,7 +127,6 @@ import {
   ConfirmationProvider,
   useConfirmation,
 } from "../core/dialogs/confirmation";
-import { AnchoredOverlay } from "../core/dialogs/AnchoredOverlay";
 import { Modal } from "../core/dialogs/Modal";
 import {
   MutationCoordinator,
@@ -169,6 +171,9 @@ import { CircleCheckbox } from "../shared/components/CircleCheckbox";
 import { QuantifierFields } from "../shared/components/QuantifierFields";
 import { StatusIcon } from "../shared/components/StatusIcon";
 import { TaskProgressMeta } from "../shared/components/TaskProgressMeta";
+import { CurrencyAmount } from "../shared/components/CurrencyAmount";
+import { CardActionMenu, CardActionMenuItem } from "../shared/components/CardActionMenu";
+export { CardActionMenu } from "../shared/components/CardActionMenu";
 import {
   ColourPicker,
   paletteOptions,
@@ -184,7 +189,7 @@ import {
 } from "../features/tasks/bulkTaskCommands";
 import { TaskEditor } from "../features/tasks/editor/TaskEditor";
 import { TaskMoveDialog } from "../features/tasks/TaskMoveDialog";
-import { TrashView } from "../features/trash/TrashView";
+import { HiddenMode, TrashModeToggle, TrashView } from "../features/trash/TrashView";
 import {
   ScheduleEditor,
   SchedulesView,
@@ -408,6 +413,7 @@ function Application() {
     useState<SettingsSubsection>("home");
   const [dockPage, setDockPage] = useState(0);
   const [dockDirection, setDockDirection] = useState<"left" | "right">("left");
+  const [trashMode, setTrashMode] = useState<HiddenMode>("deleted");
   const [modal, setModal] = useState<ModalState>(null);
   const [taskEditor, setTaskEditor] = useState<TaskEditorState>(null);
   const [scheduleEditor, setScheduleEditor] =
@@ -896,6 +902,13 @@ function Application() {
       : selectedArea
         ? selectedArea.title
         : (desktopNav.find((item) => item.id === view)?.label ?? "Today");
+  const PageTitleIcon = selectedList
+    ? ListOrdered
+    : selectedProject
+      ? FolderKanban
+      : selectedArea
+        ? LandPlot
+        : (navigationRegistry.find((item) => item.id === view)?.icon ?? null);
   const detailBackTarget = entityDetailBackTarget(selectedList?.id ?? null, selectedProject?.id ?? null, selectedArea?.id ?? null);
   const settingsBackVisible = view === "settings" && settingsSubsectionShowsBack(settingsSubsection);
   const taskViewId = toTaskViewId(view);
@@ -1677,7 +1690,9 @@ function Application() {
       </aside>
       <section className={`workspace ${mobileFiltersOpen ? "mobile-filters-open" : ""}`}>
         <header className="topbar">
-          <div>
+          <div
+            className={`topbar-title topbar-title--with-currency${mobileFilterControlsAvailable ? " topbar-title--with-filter" : ""}${view === "trash" ? " topbar-title--trash" : ""}`}
+          >
             {pending === "failed" && (
               <p className={`sync-state ${pending}`}>
                 Save failed
@@ -1687,6 +1702,7 @@ function Application() {
               {detailBackTarget && <button type="button" className="icon-button button ghost entity-back-button" aria-label="Back" title="Back" onClick={navigateBackFromDetail}><ArrowLeft aria-hidden="true" /></button>}
               {settingsBackVisible && <button type="button" className="icon-button button ghost entity-back-button" aria-label="Back to Settings" title="Back to Settings" onClick={navigateBackFromSettings}><ArrowLeft aria-hidden="true" /></button>}
               <h2 style={selectedList?.color ? { color: selectedList.color } : undefined}>
+                {PageTitleIcon && <PageTitleIcon className={`mobile-page-title-icon${view === "bakery" ? " bakery-page-title-icon" : ""}`} aria-hidden="true" />}
                 <span className="entity-title-text">{title}</span>
                 {(selectedList || selectedProject) && (
                   <QuantifierTitleIcons
@@ -1698,6 +1714,10 @@ function Application() {
             </div>
           </div>
           <div className="topbar-actions">
+            <CurrencyAmount amount={data.bakery.balances.coin} className="topbar-currency" />
+            {view === "trash" && (
+              <TrashModeToggle mode={trashMode} setMode={setTrashMode} />
+            )}
             {mobileFilterControlsAvailable && (
               <button
                 type="button"
@@ -2089,7 +2109,7 @@ function Application() {
             }
           />
         )}
-        {initialDataReady && view === "trash" && <TrashView data={data} commit={commit} />}
+        {initialDataReady && view === "trash" && <TrashView data={data} commit={commit} mode={trashMode} setMode={setTrashMode} />}
         {initialDataReady && view === "settings" && (
           <Suspense fallback={<OptionalSurfaceFallback />}><SettingsView
             provider={provider}
@@ -2581,6 +2601,7 @@ export function TaskViewPanel({
           <TaskSection
             key={section.key}
             title={section.title}
+            showHeading={!((viewId === "today" && section.title === "Due Today") || ((viewId === "inbox" || viewId === "tasks" || viewId === "someday") && section.title === "Tasks"))}
             data={data}
             tasks={section.tasks}
             visibleHierarchyIds={visibleHierarchyIds}
@@ -4714,7 +4735,7 @@ function ListBrowser({
     .filter((list) => !list.deletedAt && !list.archivedAt)
     .sort((a, b) => a.order - b.order || a.title.localeCompare(b.title));
   return (
-    <section className="task-section">
+    <section className="task-section list-browser-view">
       {lists.length === 0 ? (
         <EmptyState>No Lists yet.</EmptyState>
       ) : (
@@ -4953,6 +4974,11 @@ export function ListRow({
           </button>
         )}
       </div>
+      {(editList || archiveList || deleteList) && <CardActionMenu label={`Open actions for ${list.title}`} actions={[
+        ...(editList ? [{ id: "edit", label: "Edit", icon: <Pencil aria-hidden="true" />, onSelect: editList }] : []),
+        ...(archiveList ? [{ id: "archive", label: "Archive", icon: <Archive aria-hidden="true" />, onSelect: archiveList }] : []),
+        ...(deleteList ? [{ id: "delete", label: "Move to Trash", icon: <Trash2 aria-hidden="true" />, onSelect: deleteList, danger: true }] : []),
+      ]} />}
     </div>
   );
 }
@@ -5306,13 +5332,13 @@ function ProjectsView(props: any) {
   ];
   const areas = sortAreasForBrowser(areasBase, sort);
   if (mode === "projects") return (
-    <section className="task-section">
+    <section className="task-section project-area-browser">
       <ProjectAreaBrowserToolbar sort={sort} setSort={setSort} group={group} setGroup={setGroup} groupOptions={[{ value: "none", label: "None" }, { value: "area", label: "Area" }, { value: "status", label: "Status" }]} toggle={<ShowClosedIconToggle checked={showCompleted} setChecked={setShowCompleted} showLabel="Show Closed Projects" hideLabel="Hide Closed Projects" />} />
       {projects.length === 0 ? (
         <EmptyState>No Projects yet.</EmptyState>
       ) : (
         projectGroups.map((projectGroup) => (
-          <section className="task-section" key={projectGroup.key}>
+          <section className="task-section project-area-browser__content" key={projectGroup.key}>
             {group !== "none" && <h3 className="section-heading">{projectGroup.title}</h3>}
             <div className="list-browser">
               {projectGroup.projects.map((project) => (
@@ -5342,12 +5368,12 @@ function ProjectsView(props: any) {
     </section>
   );
   return (
-    <section className="task-section">
+    <section className="task-section project-area-browser">
       <ProjectAreaBrowserToolbar sort={sort} setSort={setSort} group={group} setGroup={setGroup} groupOptions={[{ value: "none", label: "None" }, { value: "status", label: "State" }]} />
       {areas.length === 0 ? (
         <EmptyState>No Areas yet.</EmptyState>
       ) : (
-        <section className="task-section">
+        <section className="task-section project-area-browser__content">
           {group === "status" && <h3 className="section-heading">Active Areas</h3>}
           <div className="list-browser">
             {areas.filter((area) => !area.deletedAt).map((area) => (
@@ -5446,40 +5472,6 @@ function groupProjectsByStatus(data: AppData, projects: Project[]) {
 
 function UnavailableEntity({ title, browserLabel, back }: { title: string; browserLabel: string; back: () => void }) {
   return <section className="unavailable-entity" role="status"><h3>{title}</h3><p>This saved link no longer points to an available item. It may have been deleted or changed after the link was saved.</p><div className="row-icon-actions">{history.length > 1 && <Button variant="ghost" onClick={() => history.back()}>Back</Button>}<Button variant="primary" onClick={back}>{browserLabel}</Button></div></section>;
-}
-
-interface CardActionMenuItem {
-  id: string;
-  label: string;
-  icon: ReactNode;
-  onSelect: () => void;
-  danger?: boolean;
-}
-
-export function CardActionMenu({ label, actions }: { label: string; actions: CardActionMenuItem[] }) {
-  const [open, setOpen] = useState(false);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      event.preventDefault();
-      setOpen(false);
-      triggerRef.current?.focus();
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open]);
-
-  return <div className="card-action-menu card-action-menu--mobile">
-    <button ref={triggerRef} type="button" className={`icon-button button ghost card-action-menu__trigger ${open ? "selected" : ""}`} aria-label={label} aria-haspopup="menu" aria-expanded={open} title="Actions" onClick={() => setOpen((current) => !current)}><Menu aria-hidden="true" /></button>
-    {open && <AnchoredOverlay anchorRef={triggerRef} className="card-action-menu__panel" placement="left" onClose={() => setOpen(false)}>
-      <div className="card-action-menu__items" role="menu" aria-label={label}>
-        {actions.map((action) => <button key={action.id} type="button" role="menuitem" className={`card-action-menu__item button ghost ${action.danger ? "danger" : ""}`} onClick={() => { setOpen(false); action.onSelect(); }}>{action.icon}<span>{action.label}</span></button>)}
-      </div>
-    </AnchoredOverlay>}
-  </div>;
 }
 
 export function ProjectRow({

@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AppData, QUANTIFIER_IDS, Task } from "../../domain";
 import { createSeedData } from "../../seed";
-import { TaskHierarchy, TaskRow } from "./TaskSection";
+import { TaskHierarchy, TaskRow, TaskSection } from "./TaskSection";
 
 function renderRow(data: AppData, task: Task, overrides: Partial<Parameters<typeof TaskRow>[0]> = {}) {
   const props = {
@@ -161,5 +161,33 @@ describe("TaskRow", () => {
     expect(root).toHaveClass("task-node--root");
     expect(root.style.getPropertyValue("--tree-depth")).toBe("0");
     expect(nested.style.getPropertyValue("--tree-depth")).toBe("1");
+  });
+
+  it("keeps deferred Tasks collapsed behind a full-width disclosure", () => {
+    const data = createSeedData();
+    const task = { ...data.tasks[0], revealDate: "2099-01-01" };
+    const { container } = render(
+      <TaskSection
+        title="Deferred"
+        tone="deferred"
+        data={{ ...data, tasks: [task] }}
+        tasks={[task]}
+        completeTask={vi.fn()}
+        deleteTask={vi.fn()}
+        editTask={vi.fn()}
+        moveTask={vi.fn()}
+        reorderTask={vi.fn()}
+      />,
+    );
+
+    const disclosure = screen.getByRole("button", { name: "Deferred" });
+    expect(disclosure).toHaveAttribute("aria-expanded", "false");
+    expect(disclosure.querySelector(".lucide-chevron-down")).not.toBeNull();
+    expect(screen.queryByText(task.title)).not.toBeInTheDocument();
+
+    fireEvent.click(disclosure);
+    expect(disclosure).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText(task.title)).toBeInTheDocument();
+    expect(container.querySelector(".task-row")).not.toHaveClass("is-deferred");
   });
 });

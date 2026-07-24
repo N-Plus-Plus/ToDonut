@@ -1,5 +1,5 @@
 import { CSSProperties, FormEvent, ReactNode, useState } from "react";
-import { ArrowDown, ArrowDown01, ArrowUp, Braces, CalendarSync, ChevronDown, ChevronUp, Component, GripVertical, LucideIcon, Pencil, Plus, Save, SlidersHorizontal, Tag as TagIcon, Trash2, Workflow, X, Zap } from "lucide-react";
+import { ArrowDown, ArrowDown01, ArrowUp, Braces, CalendarSync, ChevronDown, ChevronUp, Component, GripVertical, LucideIcon, Pencil, Pipette, Plus, Save, SlidersHorizontal, Tag as TagIcon, Trash2, Workflow, X, Zap } from "lucide-react";
 import { AppData, Priority, QuantifierDefinition, Status, Tag, TagGroup, activeStatuses, defaultPriorityId, orderedActivePriorities, orderedActiveTagGroups, orderedQuantifierDefinitions, updateQuantifierDefinitionCommand } from "../../domain";
 import { AuthState, PersistenceProvider } from "../../persistence";
 import { MutationState, SyncState } from "../../exportSafety";
@@ -13,6 +13,9 @@ import { parseLucideIconTokens } from "../../core/icons/lucideIconTokens";
 import { invalidLucideIconNames } from "../../core/icons/lucideIconRegistry";
 import { SettingsSubsection } from "../../core/add/contextualAdd";
 import { SchedulesView } from "../recurrence/SchedulesView";
+import { Modal } from "../../core/dialogs/Modal";
+import { CardActionMenu } from "../../shared/components/CardActionMenu";
+import { paletteOptions } from "../../shared/components/ConfigurationControls";
 
 interface SettingsViewProps {
   provider: PersistenceProvider;
@@ -93,7 +96,8 @@ function QuantifierSettings({ data, commit }: SettingsViewProps) {
 
 export function QuantifierEditor({ data, definition, commit }: { data: AppData; definition: QuantifierDefinition; commit: SettingsViewProps["commit"] }) {
   const [name, setName] = useState(definition.name);
-  const [options, setOptions] = useState(() => [...definition.options].sort((a, b) => a.order - b.order).map((option) => ({ id: option.id, key: option.id, name: option.name, iconText: option.iconNames.join("|") })));
+  const [options, setOptions] = useState(() => [...definition.options].sort((a, b) => a.order - b.order).map((option) => ({ id: option.id, key: option.id, name: option.name, iconText: option.iconNames.join("|"), color: option.color })));
+  const [colourOptionKey, setColourOptionKey] = useState<string | null>(null);
   const [error, setError] = useState("");
   const Icon = definition.icon === "zap" ? Zap : Component;
   const moveOption = (index: number, direction: -1 | 1) => {
@@ -107,7 +111,7 @@ export function QuantifierEditor({ data, definition, commit }: { data: AppData; 
     event.preventDefault();
     setError("");
     try {
-      const preparedOptions = options.map((option) => ({ id: option.id || undefined, name: option.name, iconNames: parseLucideIconTokens(option.iconText) }));
+      const preparedOptions = options.map((option) => ({ id: option.id || undefined, name: option.name, iconNames: parseLucideIconTokens(option.iconText), color: option.color }));
       const invalidIconNames = invalidLucideIconNames(preparedOptions.flatMap((option) => option.iconNames));
       if (invalidIconNames.length) throw new Error(`Unknown Lucide icon${invalidIconNames.length === 1 ? "" : "s"}: ${[...new Set(invalidIconNames)].join(", ")}.`);
       await commit(updateQuantifierDefinitionCommand(data, definition.id, { name, options: preparedOptions }), [definition.id], `${name.trim() || definition.name} saved`);
@@ -123,14 +127,30 @@ export function QuantifierEditor({ data, definition, commit }: { data: AppData; 
       {options.map((option, index) => <div className="quantifier-option-row" key={option.key}>
         <input className="field" aria-label={`${definition.name} option ${index + 1}`} value={option.name} onChange={(event) => setOptions(options.map((candidate) => candidate.key === option.key ? { ...candidate, name: event.target.value } : candidate))} />
         <input className="field" aria-label={`${definition.name} option ${index + 1} icons`} placeholder="zap|component" value={option.iconText} onChange={(event) => setOptions(options.map((candidate) => candidate.key === option.key ? { ...candidate, iconText: event.target.value } : candidate))} />
+        <button type="button" className="icon-button button ghost quantifier-option-colour-trigger" style={{ "--swatch-colour": option.color ?? "transparent" } as CSSProperties} aria-label={`Edit colour for ${option.name || `option ${index + 1}`}`} title="Option colour" onClick={() => setColourOptionKey(option.key)}><Pipette aria-hidden="true" /></button>
         <button type="button" className="icon-button button ghost" aria-label={`Move ${option.name || `option ${index + 1}`} up`} disabled={index === 0} onClick={() => moveOption(index, -1)}><ArrowUp aria-hidden="true" /></button>
         <button type="button" className="icon-button button ghost" aria-label={`Move ${option.name || `option ${index + 1}`} down`} disabled={index === options.length - 1} onClick={() => moveOption(index, 1)}><ArrowDown aria-hidden="true" /></button>
         <button type="button" className="icon-button button danger" aria-label={`Remove ${option.name || `option ${index + 1}`}`} onClick={() => setOptions(options.filter((candidate) => candidate.key !== option.key))}><X aria-hidden="true" /></button>
       </div>)}
-      <Button type="button" variant="ghost" onClick={() => setOptions([...options, { id: "", key: `new-${Date.now()}-${options.length}`, name: "", iconText: "" }])}><Plus aria-hidden="true" />Add Option</Button>
+      <Button type="button" variant="ghost" onClick={() => setOptions([...options, { id: "", key: `new-${Date.now()}-${options.length}`, name: "", iconText: "", color: null }])}><Plus aria-hidden="true" />Add Option</Button>
     </div>
     {error && <em className="field-error">{error}</em>}
     <div className="modal-actions"><Button type="submit" variant="primary"><Save aria-hidden="true" />Save {name.trim() || definition.name}</Button></div>
+    {colourOptionKey && (() => {
+      const option = options.find((candidate) => candidate.key === colourOptionKey);
+      if (!option) return null;
+      const label = option.name || "option";
+      const selectColor = (color: string | null) => {
+        setOptions(options.map((candidate) => candidate.key === option.key ? { ...candidate, color } : candidate));
+        setColourOptionKey(null);
+      };
+      return <Modal title={`Colour for ${label}`} onClose={() => setColourOptionKey(null)}>
+        <div className="quantifier-colour-grid" aria-label={`Colour options for ${label}`}>
+          <button type="button" className={`swatch quantifier-colour-swatch ${!option.color ? "selected" : ""}`} aria-label="No colour" title="No colour" onClick={() => selectColor(null)}><Pipette aria-hidden="true" /></button>
+          {paletteOptions.map((palette) => <button key={palette.value} type="button" className={`swatch quantifier-colour-swatch ${option.color === palette.value ? "selected" : ""}`} style={{ "--swatch-colour": palette.value } as CSSProperties} aria-label={palette.label} title={palette.label} onClick={() => selectColor(palette.value)} />)}
+        </div>
+      </Modal>;
+    })()}
   </form>;
 }
 
@@ -206,6 +226,14 @@ export function ConfigRow({ name, color, marker, metadata, isDefault, index, cou
       <button type="button" className="icon-button button ghost status-row__action--edit" aria-label={`Edit ${name}`} onClick={edit}><Pencil aria-hidden="true" /></button>
       {remove && <button type="button" className="icon-button button danger status-row__action--delete" aria-label={`Delete ${name}`} onClick={remove}><Trash2 aria-hidden="true" /></button>}
     </div>
+    {actionLayout && <CardActionMenu label={`Open actions for ${name}`} actions={[
+      ...(move ? [
+        { id: "up", label: "Move up", icon: <ArrowUp aria-hidden="true" />, onSelect: () => move(-1) },
+        { id: "down", label: "Move down", icon: <ArrowDown aria-hidden="true" />, onSelect: () => move(1) },
+      ] : []),
+      { id: "edit", label: "Edit", icon: <Pencil aria-hidden="true" />, onSelect: edit },
+      ...(remove ? [{ id: "delete", label: "Delete", icon: <Trash2 aria-hidden="true" />, onSelect: remove, danger: true }] : []),
+    ]} />}
   </div>;
 }
 

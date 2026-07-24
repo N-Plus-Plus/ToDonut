@@ -37,7 +37,7 @@ describe("quantifier dimensions", () => {
     const migrated = migrateAppData(legacy as unknown as Partial<AppData>);
     expect(migrated.tasks[0].quantifierSelections).toEqual({ [QUANTIFIER_IDS.energy]: "energy_2", [QUANTIFIER_IDS.context]: "context_1" });
     expect(migrated.tasks[0].tagIds).toEqual([lowEnergy.id, home.id]);
-    expect(migrated.quantifierDefinitions.every((definition) => definition.options.every((option) => Array.isArray(option.iconNames)))).toBe(true);
+    expect(migrated.quantifierDefinitions.every((definition) => definition.options.every((option) => Array.isArray(option.iconNames) && option.color === null))).toBe(true);
   });
 
   it("renames dimensions and options, supports arbitrary option counts, and clears removed selections", () => {
@@ -73,5 +73,21 @@ describe("quantifier dimensions", () => {
 
     expect(updated.quantifierDefinitions.find((definition) => definition.id === energy.id)!.options[0].iconNames).toEqual(["zap", "zap", "zap"]);
     expect(invalidLucideIconNames(["zap", "battery-plus", "not-a-lucide-icon"])).toEqual(["not-a-lucide-icon"]);
+  });
+
+  it("stores optional option colours while preserving an omitted existing colour", () => {
+    const data = createSeedData();
+    const energy = data.quantifierDefinitions.find((definition) => definition.id === QUANTIFIER_IDS.energy)!;
+    const coloured = updateQuantifierDefinitionCommand(data, energy.id, {
+      name: energy.name,
+      options: energy.options.map((option, index) => ({ id: option.id, name: option.name, color: index === 0 ? "var(--palette-aqua-light)" : null })),
+    });
+    const preserved = updateQuantifierDefinitionCommand(coloured, energy.id, {
+      name: energy.name,
+      options: energy.options.map((option) => ({ id: option.id, name: option.name })),
+    });
+
+    expect(coloured.quantifierDefinitions.find((definition) => definition.id === energy.id)!.options[0].color).toBe("var(--palette-aqua-light)");
+    expect(preserved.quantifierDefinitions.find((definition) => definition.id === energy.id)!.options[0].color).toBe("var(--palette-aqua-light)");
   });
 });

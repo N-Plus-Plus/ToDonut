@@ -1411,6 +1411,10 @@ Use explicit action-layout variants on shared configuration rows. CSS places Pri
 
 Modal keyboard placement belongs in the shared Modal primitive. Derive visible height and centre shift from `window.visualViewport`, listen for viewport resize/scroll, and expose those metrics through CSS custom properties. Feature modals must not implement their own keyboard offsets.
 
+# 2026-07-24 Bakery resource presentation
+
+Use the shared `CurrencyAmount` component for visible Bakery Coin values, including the application top bar; it owns the Coin PNG-plus-number treatment and accessible value label. Bakery source descriptions stay presentation-only in `BakeryView`: the catalogue remains authoritative for ingredient and supplier identity, while the normal supplier purchase command remains the only unlock path. Supplier art is optional, so components must retain their textual first-word fallback when a nominated shop PNG is absent.
+
 ## Optional destination loading
 
 Large, infrequently used destination components may be loaded with `React.lazy` at the app composition boundary when a measured production build shows a worthwhile initial-chunk reduction. Canonical state, domain commands, routing, navigation, mutation recovery and launch-critical Task surfaces remain eager. Each lazy destination renders inside `Suspense` with visible `role="status"` loading text and remains covered by the application error boundary. Do not create tiny destination chunks or arbitrary manual vendor chunks solely to silence Vite's size warning.

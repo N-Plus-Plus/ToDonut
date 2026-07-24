@@ -26,6 +26,7 @@ describe("EntityContextLine", () => {
 
   it("places Zap Energy and Component Context after Area and Project", () => {
     const data = createSeedData();
+    data.quantifierDefinitions[0].options[2].color = "var(--palette-aqua-light)";
     const project = data.projects[0];
     const { container } = render(<EntityContextLine items={[
       ...entityContextsForLocation(data, { type: "project", projectId: project.id }),
@@ -35,6 +36,7 @@ describe("EntityContextLine", () => {
     expect(container.querySelector(".lucide-zap")).not.toBeNull();
     expect(container.querySelector(".lucide-component")).not.toBeNull();
     expect(container.querySelectorAll(".inline-icon-text")).toHaveLength(4);
+    expect(container.querySelector(".entity-context-line__item--quantifier")).toHaveStyle({ color: "var(--palette-aqua-light)" });
   });
 
   it("summarises a configured option as its ordered icon sequence while retaining its accessible full name", () => {

@@ -2,7 +2,7 @@ import { BAKERY_MARKET_SCHEMA_VERSION, ProductMarketState, createProductMarket, 
 import { ALL_RESOURCE_IDS, BAKERY_CATALOGUE_SCHEMA_VERSION, discoverableRecipeIds } from "./domain/bakeryCatalogue";
 import { normaliseLucideIconName } from "./core/icons/lucideIconTokens";
 
-export const SCHEMA_VERSION = 9;
+export const SCHEMA_VERSION = 10;
 export const EXPORT_FORMAT_ID = "todonut.full-fidelity";
 export const EXPORT_FORMAT_VERSION = 1;
 export const APP_TIMEZONE = "Australia/Sydney";
@@ -15,7 +15,7 @@ export type ReferenceListLocation = { type: "loose" } | { type: "area"; areaId: 
 export interface RecordMeta { id: string; createdAt: string; updatedAt: string; version: number; deletedAt: string | null }
 export interface Area extends RecordMeta { kind: "area"; title: string; description: string; color: string; icon: string; order: number; archivedAt: string | null }
 export type QuantifierSelections = Record<string, string>;
-export interface QuantifierOption { id: string; name: string; iconNames: string[]; order: number }
+export interface QuantifierOption { id: string; name: string; iconNames: string[]; color: string | null; order: number }
 export interface QuantifierDefinition extends RecordMeta { kind: "quantifierDefinition"; name: string; icon: "zap" | "component"; order: number; options: QuantifierOption[] }
 export interface Project extends RecordMeta { kind: "project"; title: string; description: string; color: string; icon: string; areaId: string | null; statusId: string; order: number; completedAt: string | null; cancelledAt: string | null; archivedAt: string | null; taskPresentation: "compact" | "detailed"; tagIds: string[]; quantifierSelections: QuantifierSelections }
 export interface ReferenceList extends RecordMeta { kind: "referenceList"; title: string; location: ReferenceListLocation; areaId: string | null; projectId: string | null; order: number; archivedAt: string | null; content: ReferenceListContent; tagIds: string[]; quantifierSelections: QuantifierSelections; color: string | null; icon: string }
@@ -68,8 +68,8 @@ export function createDefaultQuantifierDefinitions(): QuantifierDefinition[] {
   const at = "2026-07-22T00:00:00.000Z";
   const meta = (id: string): RecordMeta => ({ id, createdAt: at, updatedAt: at, version: 1, deletedAt: null });
   return [
-    { ...meta(QUANTIFIER_IDS.energy), kind: "quantifierDefinition", name: "Energy", icon: "zap", order: 1, options: ["Relaxed", "Low Energy", "Medium Energy", "High Energy", "It's a Whole Thing"].map((name, index) => ({ id: `energy_${index + 1}`, name, iconNames: [], order: index + 1 })) },
-    { ...meta(QUANTIFIER_IDS.context), kind: "quantifierDefinition", name: "Context", icon: "component", order: 2, options: ["Home", "Work", "Outing", "Mental", "Digital", "Relationship"].map((name, index) => ({ id: `context_${index + 1}`, name, iconNames: [], order: index + 1 })) },
+    { ...meta(QUANTIFIER_IDS.energy), kind: "quantifierDefinition", name: "Energy", icon: "zap", order: 1, options: ["Relaxed", "Low Energy", "Medium Energy", "High Energy", "It's a Whole Thing"].map((name, index) => ({ id: `energy_${index + 1}`, name, iconNames: [], color: null, order: index + 1 })) },
+    { ...meta(QUANTIFIER_IDS.context), kind: "quantifierDefinition", name: "Context", icon: "component", order: 2, options: ["Home", "Work", "Outing", "Mental", "Digital", "Relationship"].map((name, index) => ({ id: `context_${index + 1}`, name, iconNames: [], color: null, order: index + 1 })) },
   ];
 }
 export function orderedQuantifierDefinitions(data: AppData): QuantifierDefinition[] { return data.quantifierDefinitions.filter((definition) => !definition.deletedAt).sort((a, b) => a.order - b.order || a.name.localeCompare(b.name)); }
@@ -77,7 +77,7 @@ export function normaliseQuantifierSelections(definitions: QuantifierDefinition[
   if (!selections) return {};
   return Object.fromEntries(definitions.filter((definition) => !definition.deletedAt).flatMap((definition) => definition.options.some((option) => option.id === selections[definition.id]) ? [[definition.id, selections[definition.id]]] : []));
 }
-export interface QuantifierDefinitionInput { name: string; options: Array<{ id?: string; name: string; iconNames?: string[] }> }
+export interface QuantifierDefinitionInput { name: string; options: Array<{ id?: string; name: string; iconNames?: string[]; color?: string | null }> }
 export function updateQuantifierDefinitionCommand(data: AppData, definitionId: string, input: QuantifierDefinitionInput): AppData {
   const definition = data.quantifierDefinitions.find((candidate) => candidate.id === definitionId && !candidate.deletedAt);
   if (!definition) throw new DomainError("Quantifier not found.");
@@ -96,7 +96,7 @@ export function updateQuantifierDefinitionCommand(data: AppData, definitionId: s
     const iconNames = (option.iconNames ?? existingOption?.iconNames ?? []).map(normaliseLucideIconName).filter(Boolean);
     const malformedIconNames = iconNames.filter((iconName) => !/^[a-z0-9-]+$/.test(iconName));
     if (malformedIconNames.length) throw new DomainError(`Invalid Lucide icon reference${malformedIconNames.length === 1 ? "" : "s"}: ${[...new Set(malformedIconNames)].join(", ")}.`);
-    return { id: requestedId, name: optionNames[index], iconNames, order: index + 1 };
+    return { id: requestedId, name: optionNames[index], iconNames, color: option.color === undefined ? existingOption?.color ?? null : option.color, order: index + 1 };
   });
   const updated: QuantifierDefinition = { ...definition, name, options, updatedAt: nowIso(), version: definition.version + 1 };
   const definitions = data.quantifierDefinitions.map((candidate) => candidate.id === definitionId ? updated : candidate);
@@ -969,7 +969,7 @@ export function migrateAppData(raw: Partial<AppData>, at = new Date()): AppData 
   const priorities = (data.priorities ?? []).map((priority, index) => ({ ...priority, rank: (priority.rank ?? index + 1) as Priority["rank"] }));
   const tags = (data.tags ?? []).map((tag, index) => ({ ...tag, allowedScopes: (tag.allowedScopes ?? ["task"]).filter((scope): scope is TagScope => scope === "task" || scope === "project" || scope === "referenceList"), order: tag.order ?? index + 1 }));
   const tagGroups = (data.tagGroups ?? []).map((group, index) => ({ ...group, inherited: group.inherited ?? {}, order: group.order ?? index + 1 }));
-  const quantifierDefinitions = (data.quantifierDefinitions ?? createDefaultQuantifierDefinitions()).map((definition, definitionIndex) => ({ ...definition, icon: definition.icon ?? (definitionIndex === 0 ? "zap" : "component"), order: definition.order ?? definitionIndex + 1, options: (definition.options ?? []).map((option, optionIndex) => ({ ...option, iconNames: option.iconNames ?? [], order: option.order ?? optionIndex + 1 })) }));
+  const quantifierDefinitions = (data.quantifierDefinitions ?? createDefaultQuantifierDefinitions()).map((definition, definitionIndex) => ({ ...definition, icon: definition.icon ?? (definitionIndex === 0 ? "zap" : "component"), order: definition.order ?? definitionIndex + 1, options: (definition.options ?? []).map((option, optionIndex) => ({ ...option, iconNames: option.iconNames ?? [], color: option.color ?? null, order: option.order ?? optionIndex + 1 })) }));
   const migrateSelections = (tagIds: string[], existing?: QuantifierSelections): QuantifierSelections => {
     if (existing) return normaliseQuantifierSelections(quantifierDefinitions, existing);
     const selections: QuantifierSelections = {};

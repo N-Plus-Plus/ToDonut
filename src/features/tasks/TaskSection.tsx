@@ -17,16 +17,17 @@ import {
   aggregateProgress,
   childTasks,
   isTaskClosed,
-  isTaskDeferred,
 } from "../../domain";
 import { Button } from "../../shared/components/Button";
 import { EmptyState } from "../../shared/components/EmptyState";
 import { EntityContextLine, QuantifierTitleIcons, entityContextsForLocation, quantifierMetadataContextsForSelections } from "../../shared/components/EntityContextLine";
 import { TaskProgressMeta } from "../../shared/components/TaskProgressMeta";
+import { CardActionMenu } from "../../shared/components/CardActionMenu";
 import { TASK_COMPLETION_ANIMATION_MS } from "./completionTiming";
 
 export function TaskSection({
   title,
+  showHeading = true,
   data,
   tasks,
   visibleHierarchyIds,
@@ -48,6 +49,7 @@ export function TaskSection({
   tone,
 }: {
   title: string;
+  showHeading?: boolean;
   data: AppData;
   tasks: Task[];
   visibleHierarchyIds?: string[];
@@ -72,10 +74,25 @@ export function TaskSection({
   exitingTaskIds?: Set<string>;
   tone?: "closed" | "deferred";
 }) {
+  const [deferredExpanded, setDeferredExpanded] = useState(false);
+  const isDeferredSection = tone === "deferred";
+  const showTasks = !isDeferredSection || deferredExpanded;
   return (
     <section className={`task-section ${tone ? `task-section--${tone}` : ""}`}>
-      <h3 className="section-heading">{title}</h3>
-      {tasks.length === 0 ? (
+      {showHeading && (isDeferredSection ? (
+        <h3 className="section-heading">
+          <button
+            type="button"
+            className="section-disclosure"
+            aria-expanded={deferredExpanded}
+            onClick={() => setDeferredExpanded((expanded) => !expanded)}
+          >
+            <ChevronDown aria-hidden="true" />
+            <span>{title}</span>
+          </button>
+        </h3>
+      ) : <h3 className="section-heading">{title}</h3>)}
+      {showTasks && (tasks.length === 0 ? (
         <EmptyState>No tasks here.</EmptyState>
       ) : (
         <TaskHierarchy
@@ -99,7 +116,7 @@ export function TaskSection({
           toggleSelected={toggleSelected}
           exitingTaskIds={exitingTaskIds}
         />
-      )}
+      ))}
     </section>
   );
 }
@@ -366,7 +383,6 @@ export function TaskRow({
   const closed = isTaskClosed(data, task);
   const previousClosed = useRef(closed);
   const [completionAnimated, setCompletionAnimated] = useState(false);
-  const deferred = isTaskDeferred(task);
   const progress = task.aggregate ? aggregateProgress(data, task.id) : null;
   const checklistTotal = task.checklist.length;
   const checklistChecked = task.checklist.filter((item) => item.checked).length;
@@ -395,7 +411,7 @@ export function TaskRow({
   };
   return (
     <article
-      className={`task-row task-row--${presentation} ${task.aggregate ? "is-aggregate" : ""} ${rowSelected ? "is-selected" : ""} ${active ? "active-context" : ""} ${closed ? "is-closed" : ""} ${deferred ? "is-deferred" : ""}`}
+      className={`task-row task-row--${presentation} ${task.aggregate ? "is-aggregate" : ""} ${rowSelected ? "is-selected" : ""} ${active ? "active-context" : ""} ${closed ? "is-closed" : ""}`}
       aria-selected={rowSelected}
       onFocus={() => selectTask?.(task)}
       onPointerDown={() => selectTask?.(task)}
@@ -487,9 +503,7 @@ export function TaskRow({
               )}
               {task.scheduledDate && <span>Due: {task.scheduledDate}</span>}
               {task.revealDate && (
-                <span className={presentation === "detailed" && deferred ? "badge warning" : ""}>
-                  Reveal {task.revealDate}
-                </span>
+                <span>Reveal {task.revealDate}</span>
               )}
               {presentation === "detailed" && checklistTotal > 0 && (
                 <span>
@@ -554,6 +568,19 @@ export function TaskRow({
             <Trash2 aria-hidden="true" />
           </button>
         </div>
+        <CardActionMenu
+          label={`Open actions for ${task.title}`}
+          actions={[
+            ...(canReorder ? [
+              { id: "up", label: "Move up", icon: <ChevronUp aria-hidden="true" />, onSelect: () => reorderTask(task.id, null, -1) },
+              { id: "down", label: "Move down", icon: <ChevronDown aria-hidden="true" />, onSelect: () => reorderTask(task.id, null, 1) },
+            ] : []),
+            { id: "edit", label: "Edit", icon: <Pencil aria-hidden="true" />, onSelect: () => editTask(task) },
+            { id: "promote", label: "Promote to Project", icon: <PanelTopClose aria-hidden="true" />, onSelect: () => promoteTask(task) },
+            { id: "process", label: "Process", icon: <BriefcaseBusiness aria-hidden="true" />, onSelect: () => moveTask(task) },
+            { id: "delete", label: "Move to Trash", icon: <Trash2 aria-hidden="true" />, onSelect: () => deleteTask(task), danger: true },
+          ]}
+        />
       </div>
     </article>
   );

@@ -8,11 +8,13 @@ describe("QuantifierFields", () => {
   it("keeps full option names in selectors when compact metadata uses custom icons", () => {
     const data = createSeedData();
     data.quantifierDefinitions[0].options[0].iconNames = ["zap"];
+    data.quantifierDefinitions[0].options[0].color = "var(--palette-grapefruit-light)";
     const onChange = vi.fn();
     render(<QuantifierFields data={data} value={{}} onChange={onChange} />);
 
     expect(screen.getByRole("option", { name: "Relaxed" })).toBeInTheDocument();
     fireEvent.change(screen.getAllByRole("combobox")[0], { target: { value: "energy_1" } });
     expect(onChange).toHaveBeenCalledWith({ quantifier_energy: "energy_1" });
+    expect(screen.getByRole("option", { name: "Relaxed" })).toHaveStyle({ color: "var(--palette-grapefruit-light)" });
   });
 });

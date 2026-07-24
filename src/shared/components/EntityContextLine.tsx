@@ -26,8 +26,8 @@ export function EntityContextLine({ items, fallback = null }: { items: EntityCon
     const accessibleLabel = item.kind === "area" ? `Area: ${item.title}` : item.kind === "project" ? `Project: ${item.title}` : item.icon ? `${item.prefix}: ${item.title}` : undefined;
     return <span key={`${item.kind}:${item.prefix}:${item.title}`}>
       {index > 0 && <span>, </span>}
-      <span className={`entity-context-line__item ${Icon || hasCustomIcons ? "inline-icon-text" : ""} ${item.icon ? "entity-context-line__item--quantifier" : ""}`} aria-label={accessibleLabel}>
-        {hasCustomIcons && <LucideIconSequence iconNames={item.iconNames!} />}
+      <span className={`entity-context-line__item ${Icon || hasCustomIcons ? "inline-icon-text" : ""} ${item.icon ? "entity-context-line__item--quantifier" : ""}`} aria-label={accessibleLabel} style={item.icon && item.color ? { color: item.color } : undefined}>
+        {hasCustomIcons && <LucideIconSequence iconNames={item.iconNames!} style={item.color ? { color: item.color } : undefined} />}
         {Icon && <Icon aria-hidden="true" />}
         {!Icon && !hasCustomIcons && item.prefix ? `${item.prefix}: ` : ""}
         {!hasCustomIcons && <span className="entity-context-line__title" style={!item.icon && item.color ? { color: item.color } as CSSProperties : undefined}>{item.title}</span>}
@@ -40,7 +40,7 @@ export function quantifierContextsForSelections(data: AppData, selections?: Quan
   if (!selections) return [];
   return orderedQuantifierDefinitions(data).flatMap((definition) => {
     const option = definition.options.find((candidate) => candidate.id === selections[definition.id]);
-    return option ? [{ kind: `quantifier:${definition.id}`, prefix: definition.name, title: option.name, icon: definition.icon, iconNames: option.iconNames }] : [];
+    return option ? [{ kind: `quantifier:${definition.id}`, prefix: definition.name, title: option.name, color: option.color, icon: definition.icon, iconNames: option.iconNames }] : [];
   });
 }
 
@@ -57,7 +57,7 @@ export function QuantifierTitleIcons({ data, selections }: { data: AppData; sele
       className="entity-title-quantifier"
       aria-label={`${item.prefix}: ${item.title}`}
     >
-      <LucideIconSequence iconNames={item.iconNames!} />
+      <LucideIconSequence iconNames={item.iconNames!} style={item.color ? { color: item.color } : undefined} />
     </span>
   ))}</span>;
 }

@@ -24,10 +24,11 @@ describe("configuration reorder handle", () => {
     expect(screen.queryByRole("button", { name: "Reorder Fixed" })).toBeNull();
   });
 
-  it("marks Priority and Status rows for their mobile action grids", () => {
+  it("uses one mobile hamburger menu for Priority and Status row actions", () => {
     const priority = render(<ConfigRow actionLayout="priority" name="High" color="#fff" metadata={[]} index={1} count={3} move={() => undefined} edit={() => undefined} />);
     expect(priority.container.querySelector(".status-row")).toHaveClass("status-row--priority-action-grid");
     expect(screen.getByRole("button", { name: "Edit High" })).toHaveClass("status-row__action--edit");
+    expect(screen.getByRole("button", { name: "Open actions for High" })).toBeInTheDocument();
     priority.unmount();
 
     const status = render(<ConfigRow actionLayout="status" name="Open" color="#fff" metadata={[]} index={1} count={3} move={() => undefined} edit={() => undefined} remove={() => undefined} />);
@@ -35,6 +36,21 @@ describe("configuration reorder handle", () => {
     expect(screen.getByRole("button", { name: "Move Open up" })).toHaveClass("status-row__action--up");
     expect(screen.getByRole("button", { name: "Move Open down" })).toHaveClass("status-row__action--down");
     expect(screen.getByRole("button", { name: "Delete Open" })).toHaveClass("status-row__action--delete");
+    expect(screen.getByRole("button", { name: "Open actions for Open" })).toBeInTheDocument();
+  });
+
+  it("runs Priority menu actions through the shared hamburger", () => {
+    const move = vi.fn();
+    const edit = vi.fn();
+    render(<ConfigRow actionLayout="priority" name="High" color="#fff" metadata={[]} index={1} count={3} move={move} edit={edit} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Open actions for High" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Move up" }));
+    expect(move).toHaveBeenCalledWith(-1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Open actions for High" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Edit" }));
+    expect(edit).toHaveBeenCalledOnce();
   });
 
   it("shows a configured status icon marker and keeps mapped state inline", () => {
@@ -117,6 +133,25 @@ describe("Quantifier settings", () => {
     expect(commit).toHaveBeenCalledOnce();
     const calls = commit.mock.calls as unknown as Array<[AppData]>;
     expect(calls[0][0].quantifierDefinitions[0].options[0].iconNames).toEqual(["battery-plus"]);
+  });
+
+  it("selects an optional palette colour for a Quantifier option in a centred modal", async () => {
+    const data = createSeedData();
+    const definition = data.quantifierDefinitions[0];
+    const commit = vi.fn(async () => true);
+    render(<QuantifierEditor data={data} definition={definition} commit={commit} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit colour for Relaxed" }));
+    const dialog = screen.getByRole("dialog", { name: "Colour for Relaxed" });
+    expect(dialog.querySelector(".quantifier-colour-grid")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "No colour" })).toHaveClass("selected");
+    fireEvent.click(screen.getByRole("button", { name: "Grapefruit Light" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Save Energy" }));
+    expect(commit).toHaveBeenCalledOnce();
+    const calls = commit.mock.calls as unknown as Array<[AppData]>;
+    expect(calls[0][0].quantifierDefinitions[0].options[0].color).toBe("var(--palette-grapefruit-light)");
   });
 });
 

@@ -56,16 +56,18 @@ describe("desktop cleanup contracts", () => {
     expect(styles).toContain("justify-content: space-between;");
   });
 
-  it("keeps the narrow top bar on one row with right-aligned actions", () => {
-    expect(styles).toContain("grid-template-columns: minmax(0, 1fr) auto;");
-    expect(styles).toContain(".topbar-actions { display: flex; justify-content: flex-end; }");
+  it("vertically centres narrow top-bar controls with the page title", () => {
+    expect(styles).toContain(".topbar { position: relative; display: block; min-height: var(--size-control-prominent); margin-bottom: var(--space-5); }");
+    expect(styles).toContain(".topbar-actions { position: absolute; inset-block-start: 50%; inset-inline-end: 0; display: flex; justify-content: flex-end; transform: translateY(-50%); }");
     expect(styles).toContain(".application-menu__panel");
     expect(styles).toContain("right: 0;");
+    expect(styles).toContain("margin-inline-start: 0.75rem; margin-inline-end: 0.5rem;");
   });
 
-  it("uses a two-column mobile grid for the four core Task actions", () => {
-    expect(styles).toContain(".task-row-actions__core");
-    expect(styles).toContain("grid-template-columns: repeat(2, var(--size-icon-button-sm));");
+  it("uses left-opening action menus for mobile Task and List cards", () => {
+    expect(appSource).toContain('Open actions for ${list.title}');
+    expect(styles).toContain(".task-row-actions > .card-action-menu--mobile { display: block; }");
+    expect(styles).toContain(".reference-list-row > .card-action-menu--mobile { display: block; }");
   });
 
   it("keeps fixed mobile overlays out of document flow and reserves dock clearance once", () => {
@@ -74,18 +76,24 @@ describe("desktop cleanup contracts", () => {
     expect(styles).toContain(".workspace { height: auto; overflow: visible; padding:");
   });
 
-  it("uses the mobile card action patterns and four-column Trash tabs", () => {
-    expect(appSource).toContain("export function CardActionMenu");
-    expect(appSource).toContain('placement="left"');
+  it("uses the shared mobile card action pattern and four-column Trash tabs", () => {
+    expect(appSource).toContain('CardActionMenu, CardActionMenuItem } from "../shared/components/CardActionMenu"');
     expect(appSource).toContain("area-card-row");
     expect(styles).toContain(".project-card-row > .card-action-menu--mobile");
-    expect(styles).toContain(".reference-list-row__actions .list-card-action--edit { grid-column: 2; grid-row: 1; }");
+    expect(styles).toContain(".reference-list-row__actions { display: none; }");
     expect(styles).toContain(".hidden-tabs { width: 100%; grid-template-columns: repeat(4, minmax(0, 1fr));");
   });
 
-  it("uses compact configuration grids, reduced leading inset and centred visual-viewport modals", () => {
-    expect(styles).toContain(".status-row--priority-action-grid .status-row__action--edit { grid-column: 2; grid-row: 1; }");
-    expect(styles).toContain(".status-row--status-action-grid .status-row__action--delete { grid-column: 2; grid-row: 2; }");
+  it("keeps the first mobile List, Project and Area card at the shared title-to-content spacing", () => {
+    expect(appSource).toContain('className="task-section list-browser-view"');
+    expect(appSource).toContain('className="task-section project-area-browser"');
+    expect(appSource).toContain('className="task-section project-area-browser__content"');
+    expect(styles).toContain(".list-browser-view,\n  .project-area-browser,\n  .project-area-browser__content { margin-top: 0; }");
+  });
+
+  it("uses compact configuration menus, reduced leading inset and centred visual-viewport modals", () => {
+    expect(styles).toContain(".status-row--priority-action-grid .status-row__actions,");
+    expect(styles).toContain(".status-row--priority-action-grid > .card-action-menu--mobile,");
     expect(styles).toContain(".list-browser__row { padding-inline-start: var(--space-2); }");
     expect(styles).toContain("transform: translateY(var(--modal-centre-shift, 0));");
     expect(styles).not.toContain(".modal-backdrop { align-items: end;");

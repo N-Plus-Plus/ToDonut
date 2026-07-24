@@ -22,7 +22,7 @@ const ingredient = (id: string, name: string, supplierId: SupplierId, packPrice:
 export const INGREDIENTS: readonly IngredientDefinition[] = [
   ingredient("dough", "Dough", "starting-shop", 40), ingredient("sugar", "Sugar", "starting-shop", 10), ingredient("icing", "Icing", "starting-shop", 30), ingredient("sprinkles", "Sprinkles", "starting-shop", 20), ingredient("cinnamon", "Cinnamon", "starting-shop", 20),
   ingredient("cocoa", "Cocoa", "common-supplier", 30), ingredient("vanilla", "Vanilla", "common-supplier", 40), ingredient("ginger", "Ginger", "common-supplier", 50),
-  ingredient("chocolate", "Chocolate", "filling-supplier", 60), ingredient("jam", "Jam", "filling-supplier", 70), ingredient("mint", "Mint", "filling-supplier", 80), ingredient("custard", "Custard", "filling-supplier", 90), ingredient("cream", "Cream", "filling-supplier", 100), ingredient("banana", "Banana", "filling-supplier", 100), ingredient("coconut", "Coconut", "filling-supplier", 120), ingredient("marshmallow", "Marshmallow", "filling-supplier", 130),
+  ingredient("chocolate", "Chocolate", "filling-supplier", 60), ingredient("jam", "Jam", "filling-supplier", 70), ingredient("custard", "Custard", "filling-supplier", 90), ingredient("cream", "Cream", "filling-supplier", 100), ingredient("coconut", "Coconut", "filling-supplier", 120), ingredient("mint", "Mint", "filling-supplier", 80), ingredient("banana", "Banana", "filling-supplier", 100), ingredient("marshmallow", "Marshmallow", "filling-supplier", 130),
   ingredient("caramel", "Caramel", "artisan-supplier", 110), ingredient("lemon-curd", "Lemon Curd", "artisan-supplier", 120), ingredient("apple-filling", "Apple Filling", "artisan-supplier", 130), ingredient("coffee", "Coffee", "artisan-supplier", 140), ingredient("maple-syrup", "Maple Syrup", "artisan-supplier", 150), ingredient("pecan", "Pecan", "artisan-supplier", 220),
   ingredient("biscuit-crumb", "Biscuit Crumb", "premium-supplier", 160), ingredient("peanut-butter", "Peanut Butter", "premium-supplier", 170), ingredient("hazelnut", "Hazelnut", "premium-supplier", 180), ingredient("berries", "Berries", "premium-supplier", 190),
 ];
@@ -140,6 +140,16 @@ export const PRODUCT_BY_ID = Object.fromEntries(PRODUCTS.map((item) => [item.id,
 export const INGREDIENT_BY_ID = Object.fromEntries(INGREDIENTS.map((item) => [item.id,item])) as Record<string,IngredientDefinition>;
 export const SUPPLIER_BY_ID = Object.fromEntries(SUPPLIERS.map((item) => [item.id,item])) as Record<string,SupplierDefinition>;
 export const ALL_RESOURCE_IDS = ["coin",...INGREDIENTS.map((item)=>item.id)] as const;
+export const INGREDIENT_IDS_IN_PURCHASE_ORDER = SUPPLIERS.flatMap((supplier) => supplier.ingredientIds);
+const ingredientPurchaseOrderIndex = Object.fromEntries(INGREDIENT_IDS_IN_PURCHASE_ORDER.map((id, index) => [id, index])) as Record<string, number>;
+
+export function ingredientIdsInPurchaseOrder<T extends string>(ids: readonly T[]): T[] {
+  return [...ids].sort((left, right) => (ingredientPurchaseOrderIndex[left] ?? Number.MAX_SAFE_INTEGER) - (ingredientPurchaseOrderIndex[right] ?? Number.MAX_SAFE_INTEGER));
+}
+
+export function ingredientEntriesInPurchaseOrder(ingredients: Readonly<Record<string, number>>): Array<[string, number]> {
+  return ingredientIdsInPurchaseOrder(Object.keys(ingredients)).map((id) => [id, ingredients[id]]);
+}
 
 const conditionMet = (condition: DiscoveryCondition, purchased: Set<string>, available: Set<string>, owned: Set<string>) =>
   (!condition.ingredientPurchased || purchased.has(condition.ingredientPurchased)) && (!condition.ingredientAvailable || available.has(condition.ingredientAvailable)) && (!condition.recipeOwned || owned.has(condition.recipeOwned));

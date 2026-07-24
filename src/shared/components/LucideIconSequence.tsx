@@ -1,11 +1,11 @@
 import { Component, Zap, type LucideIcon } from "lucide-react";
-import { Suspense, lazy } from "react";
+import { CSSProperties, Suspense, lazy } from "react";
 
 const eagerIcons: Record<string, LucideIcon> = { component: Component, zap: Zap };
 const DynamicLucideIcon = lazy(() => import("./DynamicLucideIcon"));
 
-export function LucideIconSequence({ iconNames, label }: { iconNames: string[]; label?: string }) {
-  return <span className="lucide-icon-sequence" aria-label={label} aria-hidden={label ? undefined : "true"}>
+export function LucideIconSequence({ iconNames, label, style }: { iconNames: string[]; label?: string; style?: CSSProperties }) {
+  return <span className="lucide-icon-sequence" aria-label={label} aria-hidden={label ? undefined : "true"} style={style}>
     {iconNames.map((iconName, index) => {
       const Icon = eagerIcons[iconName];
       return Icon

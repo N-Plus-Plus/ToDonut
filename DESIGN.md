@@ -836,7 +836,7 @@ Schedule create and edit Task tabs expose a blank-default Area selector to the l
 
 All checkbox-driven interactions, including dropdown menu options, render Lucide `Circle` when unchecked and `CircleCheck` when checked. A checked option associated with a coloured entity uses that entity colour; otherwise the checked icon is mint. Native checkbox artwork is not presented.
 
-Energy and Context are configurable first-class Quantifier dimensions shared by Tasks, Projects, Lists and recurring Task templates. Energy begins with Relaxed, Low Energy, Medium Energy, High Energy and It's a Whole Thing. Context begins with Home, Work, Outing, Mental, Digital and Relationship. Settings provides one Quantifiers entry where each dimension can be renamed and its arbitrary-length option list can be added to, renamed, removed and reordered. Persist assignments by stable dimension and option IDs so renames are non-destructive. During migration, matching Energy and Context Tag Group assignments are copied without deleting legacy tags. A selected option with configured Lucide icons places its ordered icon sequence immediately after the associated Project, Task or List name; further configured Quantifiers follow in definition order. Selected options without configured icons remain in entity metadata after Area and Project context using the semantic dimension icon and option name.
+Energy and Context are configurable first-class Quantifier dimensions shared by Tasks, Projects, Lists and recurring Task templates. Energy begins with Relaxed, Low Energy, Medium Energy, High Energy and It's a Whole Thing. Context begins with Home, Work, Outing, Mental, Digital and Relationship. Settings provides one Quantifiers entry where each dimension can be renamed and its arbitrary-length option list can be added to, renamed, removed and reordered. Options can also have an optional standard-palette colour, defaulting to none. Persist assignments by stable dimension and option IDs so renames are non-destructive. During migration, matching Energy and Context Tag Group assignments are copied without deleting legacy tags. A selected option with configured Lucide icons places its ordered icon sequence immediately after the associated Project, Task or List name; further configured Quantifiers follow in definition order. Selected options without configured icons remain in entity metadata after Area and Project context using the semantic dimension icon and option name. Both representations and native selectors use the configured option colour when present.
 
 When a List or another creation editor requests a Project, it uses a text combobox with filtered Project suggestions. Clicking a suggestion stores that Project relationship. Typing a unique exact Project title, ignoring case and surrounding whitespace, stores the same Project ID relationship even when the suggestion is not clicked; display text alone is never persisted as a substitute for the relationship.
 
@@ -1297,7 +1297,7 @@ Deferred Tasks:
 
 * do not clutter ordinary active views before the reveal date;
 * remain visible when their containing Project or Area is deliberately opened;
-* appear in a distinct Deferred section where relevant;
+* appear in a distinct, initially collapsed Deferred section where relevant; the full-width Deferred control expands on demand;
 * become ordinarily eligible when the reveal date arrives.
 
 ## 18.5 Overdue behaviour
@@ -3057,6 +3057,8 @@ Post-launch ideas should be added to `ROADMAP.md`, not this document.
 
 Bakery is a dedicated destination with a persistent header launcher and a labelled desktop navigation entry. The launcher becomes icon-led at narrow widths. It participates in browser history and Back navigation. Bakery is intentionally not inserted into the mobile dock.
 
+Bakery's first section is named Stock. It combines held ingredients with supplier acquisition: ingredients expose their name and earning or supplier source through desktop hover/focus and mobile tap, while supplier grades are presented as Starting, Common, Filling, Artisan and Premium shop tabs. Locked grades retain their normal prerequisite and purchase paths. Each unlocked shop offers its individual ten-item ingredient packs plus a final Basic Pack: five of every ingredient sold by that shop for 90% of the equivalent individual quantity price, rounded up to a whole Coin. The Proofing Schedule remains an earning rule rather than persistent Stock-screen clutter. Coin is globally meaningful and is shown in the application top bar using the Coin art plus its number; all visible Bakery costs, prices, rewards and totals use that same treatment.
+
 # Configuration launch addendum
 
 Settings contains separate entries for Statuses, Priorities and Tags. Tags opens one destination with two tabs: Tags and Tag Groups. Only the active tab content is shown.
@@ -3187,11 +3189,15 @@ Must Do Today is disabled in launch-candidate UI and command paths. New and save
 
 # 2026-07-23 mobile layout addendum
 
-Mobile Tasks share a two-by-two action grid. Lists place Edit above Archive and Move to Trash. Projects and Areas use a vertically centred hamburger whose labelled actions open to the left and close after selection, outside tap or Escape. Reorder handles use a reduced leading inset and remain centred against the complete card.
+Mobile Task, List, Project and Area cards use one vertically centred hamburger action menu. Its labelled actions open to the left and close after selection, outside tap or Escape. Reorder handles remain separate, use a reduced leading inset and stay centred against the complete card.
 
-Priority configuration places Edit alone in the upper-right with Up and Down beneath it. Status configuration places Up and Edit in the upper row and Down and Delete in the lower row. Both action grids remain right aligned.
+Priority and Status configuration cards use the same one-button, left-opening hamburger action menu as other mobile cards; move, edit and delete actions remain available within it.
 
 Mobile dialogs centre in the current visual viewport: with the software keyboard open this places their centre halfway down the visible upper region; after the keyboard closes they return to screen centre. They are not bottom docked.
+
+Trash places its Deleted/Archived mode toggle in the application top bar immediately left of the hamburger menu. This is a Trash-specific exception because the toggle changes the screen's hidden-record mode.
+
+Every mobile page title presents its associated Lucide destination icon immediately before the title. The title and its top-right controls are vertically centred in one touch-sized row using the same top inset as the horizontal page inset. Today omits a `Due Today` section heading; Inbox, Tasks and Someday omit their generic `Tasks` section heading.
 
 Visible product language for schedule generation is `Schedule`. Internal recurrence type names and route keys may remain for compatibility, but user-facing labels should not say `Recurrence` or `recurrence Schedule`. Creating a Schedule from a Task uses the Task only as a prefill source for an independent Schedule template; the Schedule does not belong to the source Task.
 

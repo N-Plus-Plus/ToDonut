@@ -7,7 +7,7 @@ import { archivedAreas, deleteAreaCommand, unarchiveAreaCommand } from "../proje
 import { Button } from "../../shared/components/Button";
 import { EmptyState } from "../../shared/components/EmptyState";
 
-type HiddenMode = "deleted" | "archived";
+export type HiddenMode = "deleted" | "archived";
 type DeletedTab = "areas" | "projects" | "tasks" | "lists";
 type HiddenTab = DeletedTab;
 type HiddenRecord = Area | Project | Task | ReferenceList;
@@ -19,16 +19,15 @@ const deletedTabs: Array<{ id: DeletedTab; label: string }> = [
   { id: "lists", label: "Lists" },
 ];
 
-export function TrashView({ data, commit }: { data: AppData; commit: (next: AppData, expectedIds?: string[], successMessage?: string) => Promise<boolean | void> }) {
+export function TrashView({ data, commit, mode: controlledMode, setMode: setControlledMode }: { data: AppData; commit: (next: AppData, expectedIds?: string[], successMessage?: string) => Promise<boolean | void>; mode?: HiddenMode; setMode?: (mode: HiddenMode) => void }) {
   const confirm = useConfirmation();
-  const [mode, setMode] = useState<HiddenMode>("deleted");
+  const [uncontrolledMode, setUncontrolledMode] = useState<HiddenMode>("deleted");
+  const mode = controlledMode ?? uncontrolledMode;
+  const setMode = setControlledMode ?? setUncontrolledMode;
   const [tab, setTab] = useState<HiddenTab>("projects");
   const tabs = deletedTabs;
   const selectedTab = tabs.some((candidate) => candidate.id === tab) ? tab : "projects";
   const records = hiddenRecords(data, mode, selectedTab);
-  function setHiddenMode(next: HiddenMode) {
-    setMode(next);
-  }
   function action(record: HiddenRecord) {
     if (mode === "deleted") return void commit(restoreCommand(data, record.kind, record.id), [record.id], "Restored");
     if (record.kind === "area") return void commit(unarchiveAreaCommand(data, record.id), [record.id], "Unarchived");
@@ -61,13 +60,16 @@ export function TrashView({ data, commit }: { data: AppData; commit: (next: AppD
       <div className="hidden-tabs" role="tablist" aria-label={`${mode} entity tabs`}>
         {tabs.map((item) => <button key={item.id} type="button" className={selectedTab === item.id ? "selected" : ""} aria-selected={selectedTab === item.id} onClick={() => setTab(item.id)}>{item.label}</button>)}
       </div>
-      <button type="button" className={`show-closed-toggle hidden-mode-toggle ${mode === "archived" ? "is-on" : ""}`} aria-label={mode === "deleted" ? "Showing Deleted items" : "Showing Archived items"} onClick={() => setHiddenMode(mode === "deleted" ? "archived" : "deleted")}>
-        <span className={`show-closed-toggle__state ${mode === "deleted" ? "is-selected" : ""}`} aria-hidden="true"><Trash2 /></span>
-        <span className={`show-closed-toggle__state ${mode === "archived" ? "is-selected" : ""}`} aria-hidden="true"><Archive /></span>
-      </button>
     </div>
     {records.length === 0 ? <EmptyState>No {mode} {tabLabel(selectedTab)}.</EmptyState> : <div className="hidden-list">{records.map((record) => <HiddenRow key={record.id} data={data} mode={mode} record={record} action={() => action(record)} deleteArchived={() => deleteArchived(record)} purge={() => purge(record)} />)}</div>}
   </section>;
+}
+
+export function TrashModeToggle({ mode, setMode }: { mode: HiddenMode; setMode: (mode: HiddenMode) => void }) {
+  return <button type="button" className={`show-closed-toggle hidden-mode-toggle ${mode === "archived" ? "is-on" : ""}`} aria-label={mode === "deleted" ? "Showing Deleted items" : "Showing Archived items"} onClick={() => setMode(mode === "deleted" ? "archived" : "deleted")}>
+    <span className={`show-closed-toggle__state ${mode === "deleted" ? "is-selected" : ""}`} aria-hidden="true"><Trash2 /></span>
+    <span className={`show-closed-toggle__state ${mode === "archived" ? "is-selected" : ""}`} aria-hidden="true"><Archive /></span>
+  </button>;
 }
 
 function hiddenRecords(data: AppData, mode: HiddenMode, tab: HiddenTab): HiddenRecord[] {

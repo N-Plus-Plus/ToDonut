@@ -14,18 +14,20 @@ Open `http://<computer-lan-ip>:5173/` on a phone connected to the same network a
 - Confirm a fresh mobile load begins on Today, shows the `Today` title and starts on the primary dock page.
 - Confirm primary dock order: Today, Inbox, Tasks, Lists, Projects, Upcoming.
 - Confirm secondary dock order: Areas, Overdue, Someday, Trash, Bakery, Settings.
-- Confirm the page label stays on the same row as the right-aligned hamburger and that the menu remains wholly on screen.
+- Confirm every page title has its destination Lucide icon, shares one vertically centred row with the right-aligned controls, uses the same top inset as the horizontal inset, and that menus remain wholly on screen.
 - On a Task or Project view, confirm controls start collapsed, the Filter icon immediately left of the hamburger reveals/hides them, and Show/Hide stays left while More stays right on one row.
-- Confirm a Task card's four core actions form a right-aligned two-by-two grid with Edit/Promote above Process/Trash.
-- Confirm Project cards show one vertically centred hamburger; its labelled actions open to the left and close after selection, outside tap or Escape.
-- Confirm Area cards use the same action hamburger and a long description wraps without moving the hamburger or reorder handle away from vertical centre.
-- Confirm List cards place Edit in the upper-right with Archive and Delete beneath it, and confirm expanded cards keep their reorder handles vertically centred.
-- Confirm Trash shows all four entity tabs in one row.
-- In Settings > Priorities, confirm Edit is upper-right and Up/Down share the lower row. In Statuses, confirm Up/Edit are above Down/Delete.
+- Confirm Task, Project, Area and List cards show one vertically centred hamburger; its labelled actions open to the left and close after selection, outside tap or Escape.
+- On Tasks, confirm Deferred begins collapsed, its full-width heading has a leading ChevronDown, and tapping anywhere on that row expands or collapses ordinary unhighlighted Task cards.
+- Confirm long Area descriptions wrap without moving the action hamburger or reorder handle away from vertical centre.
+- Confirm List card action menus contain Edit, Archive and Move to Trash, and expanded cards keep their reorder handles vertically centred.
+- Confirm Trash shows its Deleted/Archived toggle immediately left of the hamburger and all four entity tabs in one row.
+- In Settings > Priorities and Statuses, confirm each card uses one left-opening hamburger menu for its move, edit and delete actions.
+- In Settings > Quantifiers, open an Option colour control: confirm a centred four-column palette modal, a first Pipette/none swatch, selected-state treatment, and that a chosen colour appears on the option in selectors and inline Task, Project and List context.
 - Confirm card and configuration reorder handles sit closer to the left edge and remain vertically centred.
 - Open a modal field that summons the keyboard and confirm the modal centres in the visible upper region; dismiss the keyboard and confirm the modal returns to screen centre rather than the bottom.
 - Confirm Export is absent from mobile UI and cannot receive focus while hidden.
 - Confirm the Add button sits above the dock, the Add menu opens upward, and outside tap, Escape and navigation close it.
+- In Bakery > Donuts, confirm the final scroll position ends with one empty donut-row height rather than a large footer gap.
 - Confirm representative modals fit the viewport, trap focus, close with Escape when idle and restore focus.
 
 ## Physical Phone Checks Still Required
@@ -35,7 +37,8 @@ Open `http://<computer-lan-ip>:5173/` on a phone connected to the same network a
 - Tap each dock item and confirm taps are not misread as swipes.
 - Select a destination on the secondary page, swipe back to primary, then swipe forward and confirm the selected state is retained.
 - Check safe-area spacing on the phone browser, including notches/home indicator areas where applicable.
-- Scroll to the final card in Tasks, Lists and Projects and confirm it remains reachable above the dock/Add button without a second screen of empty trailing space.
+- Scroll to the final card in Tasks, Lists and Projects and confirm it remains reachable near the usable lower edge above the dock, with only one card gap plus roughly half a compact card available for pop-out actions.
+- Confirm the first card in Today, Inbox, Tasks, Lists, Projects, Areas, Upcoming, Overdue and Someday begins after the same ordinary gap below the title row; Trash and Settings retain their deliberate interface-specific spacing.
 - Open and close the Add menu at the end of a card list and confirm the list's scroll extent does not change.
 - Open the Add menu and confirm every item remains visible and tappable.
 - Open the mobile keyboard in a modal or auth form and confirm the active field and actions remain usable where practical.
