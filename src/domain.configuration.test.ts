@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { AppData, createTagCommand, createTagGroupCommand, defaultPriorityId, deleteTagCommand, deleteTagGroupCommand, reorderPriorityCommand, reorderTagCommand, reorderTagRelativeCommand, updatePriorityCommand, updateTagCommand, updateTagGroupCommand } from "./domain";
+import { AppData, addReferenceEntries, createRecurrenceRuleCommand, createTagCommand, createTagGroupCommand, defaultPriorityId, deleteTagCommand, deleteTagGroupCommand, migrateAppData, reorderPriorityCommand, reorderTagCommand, reorderTagRelativeCommand, updatePriorityCommand, updateTagCommand, updateTagGroupCommand } from "./domain";
 import { PRIORITY_IDS, createSeedData } from "./seed";
 
 describe("configuration commands", () => {
@@ -24,23 +24,59 @@ describe("configuration commands", () => {
 
     const created = createTagCommand(data, { name: "Cross", description: "Reusable", color: "var(--palette-aqua-light)", allowedScopes: ["task", "project", "referenceList"], tagGroupId: null });
     const tag = created.tags.find((candidate) => candidate.name === "Cross")!;
-    const assigned: AppData = { ...created, tasks: created.tasks.map((task, index) => index === 0 ? { ...task, tagIds: [tag.id] } : task), projects: created.projects.map((project) => ({ ...project, tagIds: [tag.id] })), referenceLists: created.referenceLists.map((list) => ({ ...list, tagIds: [tag.id] })) };
+    const withSchedule = scheduleWithTag(created, tag.id);
+    const withEntry = addReferenceEntries(withSchedule, withSchedule.referenceLists[0].id, "Tagged legacy item", [tag.id]);
+    const assigned: AppData = { ...withEntry, tasks: withEntry.tasks.map((task, index) => index === 0 ? { ...task, tagIds: [tag.id] } : task), projects: withEntry.projects.map((project) => ({ ...project, tagIds: [tag.id] })), referenceLists: withEntry.referenceLists.map((list) => ({ ...list, tagIds: [tag.id] })) };
     const scoped = updateTagCommand(assigned, tag.id, { name: "Cross", description: "", color: tag.color, allowedScopes: ["task"], tagGroupId: null });
     expect(scoped.tasks[0].tagIds).toEqual([tag.id]);
     expect(scoped.projects[0].tagIds).toEqual([]);
     expect(scoped.referenceLists[0].tagIds).toEqual([]);
+    expect(scoped.referenceListEntries[0].tagIds).toEqual([]);
+    expect(scoped.recurrenceRules[0].template.tagIds).toEqual([tag.id]);
+    const withoutTaskScope = updateTagCommand(assigned, tag.id, { name: "Cross", description: "", color: tag.color, allowedScopes: ["project"], tagGroupId: null });
+    expect(withoutTaskScope.tasks[0].tagIds).toEqual([]);
+    expect(withoutTaskScope.recurrenceRules[0].template.tagIds).toEqual([]);
     expect(scoped.activity.some((event) => event.type === "scopeChanged")).toBe(true);
   });
 
   it("soft deletes Tags and removes all entity assignments atomically", () => {
     const data = createSeedData();
     const tag = data.tags[0];
-    const assigned: AppData = { ...data, tasks: data.tasks.map((task) => ({ ...task, tagIds: [tag.id] })), projects: data.projects.map((project) => ({ ...project, tagIds: [tag.id] })), referenceLists: data.referenceLists.map((list) => ({ ...list, tagIds: [tag.id] })) };
+    const withSchedule = scheduleWithTag(data, tag.id);
+    const withEntry = addReferenceEntries(withSchedule, withSchedule.referenceLists[0].id, "Tagged legacy item", [tag.id]);
+    const assigned: AppData = { ...withEntry, tasks: withEntry.tasks.map((task) => ({ ...task, tagIds: [tag.id] })), projects: withEntry.projects.map((project) => ({ ...project, tagIds: [tag.id] })), referenceLists: withEntry.referenceLists.map((list) => ({ ...list, tagIds: [tag.id] })) };
     const deleted = deleteTagCommand(assigned, tag.id);
     expect(deleted.tags.find((candidate) => candidate.id === tag.id)?.deletedAt).toBeTruthy();
     expect(deleted.tasks.every((task) => !task.tagIds.includes(tag.id))).toBe(true);
     expect(deleted.projects.every((project) => !project.tagIds.includes(tag.id))).toBe(true);
     expect(deleted.referenceLists.every((list) => !list.tagIds.includes(tag.id))).toBe(true);
+    expect(deleted.referenceListEntries.every((entry) => !entry.tagIds.includes(tag.id))).toBe(true);
+    expect(deleted.recurrenceRules.every((rule) => !rule.template.tagIds.includes(tag.id))).toBe(true);
+  });
+
+  it("cleans legacy invalid Tag assignments from every stored Tag-bearing record", () => {
+    const data = createSeedData();
+    const withTaskTag = createTagCommand(data, { name: "Task only", description: "", color: "var(--palette-aqua-light)", allowedScopes: ["task"], tagGroupId: null });
+    const taskOnlyTag = withTaskTag.tags.find((tag) => tag.name === "Task only")!;
+    const withProjectTag = createTagCommand(withTaskTag, { name: "Project only", description: "", color: "var(--palette-aqua-light)", allowedScopes: ["project"], tagGroupId: null });
+    const projectOnlyTag = withProjectTag.tags.find((tag) => tag.name === "Project only")!;
+    const withSchedule = scheduleWithTag(withProjectTag, taskOnlyTag.id);
+    const withEntry = addReferenceEntries(withSchedule, withSchedule.referenceLists[0].id, "Legacy item", [taskOnlyTag.id]);
+    const legacy: AppData = {
+      ...withEntry,
+      tasks: withEntry.tasks.map((task) => ({ ...task, tagIds: [taskOnlyTag.id] })),
+      projects: withEntry.projects.map((project) => ({ ...project, tagIds: [taskOnlyTag.id] })),
+      referenceLists: withEntry.referenceLists.map((list) => ({ ...list, tagIds: [taskOnlyTag.id] })),
+      referenceListEntries: withEntry.referenceListEntries.map((entry) => ({ ...entry, tagIds: [taskOnlyTag.id] })),
+      recurrenceRules: withEntry.recurrenceRules.map((rule) => ({ ...rule, template: { ...rule.template, tagIds: [taskOnlyTag.id, projectOnlyTag.id] } })),
+    };
+
+    const migrated = migrateAppData(legacy);
+    expect(migrated.tasks.every((task) => task.tagIds.includes(taskOnlyTag.id))).toBe(true);
+    expect(migrated.projects.every((project) => !project.tagIds.includes(taskOnlyTag.id))).toBe(true);
+    expect(migrated.referenceLists.every((list) => !list.tagIds.includes(taskOnlyTag.id))).toBe(true);
+    expect(migrated.referenceListEntries.every((entry) => !entry.tagIds.includes(taskOnlyTag.id))).toBe(true);
+    expect(migrated.recurrenceRules.every((rule) => rule.template.tagIds.length === 1 && rule.template.tagIds.includes(taskOnlyTag.id))).toBe(true);
   });
 
   it("reorders Tags only among siblings in the same Tag Group", () => {
@@ -93,3 +129,16 @@ describe("configuration commands", () => {
     expect(deleted.tasks[0].tagIds).toEqual([member.id]);
   });
 });
+
+function scheduleWithTag(data: AppData, tagId: string): AppData {
+  return createRecurrenceRuleCommand(data, {
+    label: "Tagged Schedule",
+    frequency: "daily",
+    interval: 1,
+    weekdays: [],
+    dayOfMonth: null,
+    firstScheduledDate: "2026-07-01",
+    endDate: null,
+    template: { title: "Tagged Task", description: "", statusId: data.statuses[0].id, priorityId: data.priorities[0].id, location: { type: "inbox" }, revealDate: null, tagIds: [tagId], mustDoToday: false, dueOnOccurrence: true, checklist: [] },
+  }, "2026-07-01");
+}

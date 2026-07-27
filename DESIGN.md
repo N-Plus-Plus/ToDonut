@@ -828,7 +828,7 @@ Expanded fields may include:
 
 Lists do not require descriptions.
 
-A List's configured colour applies to the List title in List browsing and detail headings. It does not cascade to List Items. Related entity context retains prefixes such as `Area:` and `Project:`; only the related title uses that entity's colour. When several parents apply, they appear on one comma-separated line ordered from Area to Project and then to any future lower parent level. Indirect hierarchy is included, so a Project-linked List or Task shows the Project's Area before the Project.
+A List's configured colour applies to the List title in List browsing and to the leading `ListOrdered` icon in an active List top-bar heading; the active heading's List title remains primary white. It does not cascade to List Items. Related entity context retains prefixes such as `Area:` and `Project:`; only the related title uses that entity's colour. When several parents apply, they appear on one comma-separated line ordered from Area to Project and then to any future lower parent level. Indirect hierarchy is included, so a Project-linked List or Task shows the Project's Area before the Project.
 
 The first blank List Appearance swatch explicitly unassigns the List colour when saved. It is distinct from omitting the colour field during an internal partial update, which preserves the current value.
 
@@ -2724,6 +2724,7 @@ Completion feedback should be:
 
 * brief;
 * non-blocking;
+* exactly one confirmed-success toast for a Task completion, with no Undo action;
 * slightly varied by Priority;
 * more playful for Project or large aggregate completion;
 * respectful of reduced-motion preferences.
@@ -3077,7 +3078,7 @@ The first active Status in configured order is the default open Status. `Set Def
 
 Priorities are exactly five active records. They cannot be created, deleted or archived. The user may rename, recolour, reorder and choose the default Priority. Priority IDs remain stable and independent from name, colour, icon and rank. Stored icon fields remain compatibility data only and are not exposed in launch UI. Reordering changes Task sorting rank without rewriting every Task.
 
-Tags have required name, optional description, colour, one or more scopes, optional Tag Group, order and soft-deletion metadata. Supported scopes are Tasks, Projects and Reference Lists. Removing a used scope detaches the Tag from affected entities in the same mutation. Deleting a Tag soft deletes it and removes all current assignments from Tasks, Projects and Reference Lists. There is no ordinary Tag restoration UI.
+Tags have required name, optional description, colour, one or more scopes, optional Tag Group, order and soft-deletion metadata. Supported scopes are Tasks, Projects and Reference Lists. Removing a used scope detaches the Tag from affected entities in the same mutation, including Schedule Task templates and any legacy List Item assignment fields. Deleting a Tag soft deletes it and removes all current assignments from those same records. Migration cleans legacy invalid assignments from every stored Tag-bearing record. There is no ordinary Tag restoration UI.
 
 Tag Groups have required name, optional description, manual order, `Mutually exclusive`, inherited boolean properties defined by the model, and soft-deletion metadata. Groups do not nest. Deleting a Group soft deletes the Group and ungroups member Tags without deleting Tags or entity assignments. There is no ordinary Tag Group restoration UI.
 

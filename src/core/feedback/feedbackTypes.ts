@@ -18,6 +18,7 @@ export interface FeedbackMessage {
   action?: FeedbackAction;
   createdAt: number;
   operationId?: string;
+  coinAmount?: number;
 }
 
 export interface FeedbackInput {
@@ -29,6 +30,7 @@ export interface FeedbackInput {
   dedupeKey?: string;
   action?: FeedbackAction;
   operationId?: string;
+  coinAmount?: number;
 }
 
 export function feedbackDurationMs(duration: FeedbackDuration): number | null {

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createClient } from "@supabase/supabase-js";
+import { createSeedData } from "../../seed";
 import { getSupabaseBrowserClient, SupabaseProductionProvider } from "./persistence";
 
 vi.mock("@supabase/supabase-js", () => ({
@@ -53,5 +54,28 @@ describe("Supabase browser client singleton", () => {
       operation_id: "rpc-operation",
       expected_versions: { "task-1": 3 },
     });
+  });
+
+  it("persists the one-off cleanup when a stored snapshot has invalid Tag assignments", async () => {
+    const provider = new SupabaseProductionProvider("https://example.supabase.co", "publishable-key-value-with-length");
+    const client = vi.mocked(createClient).mock.results[0].value;
+    const seed = createSeedData();
+    const tag = seed.tags[0];
+    const legacy = {
+      ...seed,
+      tags: seed.tags.map((candidate) => candidate.id === tag.id ? { ...candidate, allowedScopes: ["project"] } : candidate),
+      tasks: seed.tasks.map((task, index) => index === 0 ? { ...task, tagIds: [tag.id] } : task),
+    };
+    vi.mocked(client.rpc)
+      .mockResolvedValueOnce({ data: { snapshot: legacy, canonicalRevision: 7 }, error: null })
+      .mockResolvedValueOnce({ data: { snapshot: legacy, canonicalRevision: 8 }, error: null });
+
+    await provider.load();
+
+    const calls = vi.mocked(client.rpc).mock.calls;
+    expect(calls[0][0]).toBe("todonut_get_snapshot");
+    expect(calls[1][0]).toBe("todonut_replace_snapshot");
+    expect(calls[1][1]).toMatchObject({ expected_revision: 7, expected_versions: {} });
+    expect((calls[1][1] as { next_snapshot: typeof seed }).next_snapshot.tasks[0].tagIds).toEqual([]);
   });
 });

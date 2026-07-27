@@ -2,7 +2,7 @@ import { BAKERY_MARKET_SCHEMA_VERSION, ProductMarketState, createProductMarket, 
 import { ALL_RESOURCE_IDS, BAKERY_CATALOGUE_SCHEMA_VERSION, discoverableRecipeIds } from "./domain/bakeryCatalogue";
 import { normaliseLucideIconName } from "./core/icons/lucideIconTokens";
 
-export const SCHEMA_VERSION = 10;
+export const SCHEMA_VERSION = 11;
 export const EXPORT_FORMAT_ID = "todonut.full-fidelity";
 export const EXPORT_FORMAT_VERSION = 1;
 export const APP_TIMEZONE = "Australia/Sydney";
@@ -235,7 +235,7 @@ export function createTaskCommand(data: AppData, input: TaskDraftInput): AppData
   const title = input.title.trim();
   if (!title) throw new DomainError("Task title is required.");
   validateTaskParent(data, null, input.parentTaskId, input.location);
-  const task: Task = { ...createMeta("task"), kind: "task", title, description: input.description.trim(), statusId: input.statusId, priorityId: input.priorityId, scheduledDate: input.scheduledDate, revealDate: input.revealDate, location: input.location, parentTaskId: input.parentTaskId, childTaskIds: [], order: data.tasks.filter((candidate) => JSON.stringify(candidate.location) === JSON.stringify(input.location) && candidate.parentTaskId === input.parentTaskId).length + 1, tagIds: [...input.tagIds], quantifierSelections: normaliseQuantifierSelections(data.quantifierDefinitions, input.quantifierSelections), mustDoToday: false, aggregate: false, completedAt: null, cancelledAt: null, checklist: input.checklist.map((item, index) => ({ ...item, order: index + 1 })) };
+  const task: Task = { ...createMeta("task"), kind: "task", title, description: input.description.trim(), statusId: input.statusId, priorityId: input.priorityId, scheduledDate: input.scheduledDate, revealDate: input.revealDate, location: input.location, parentTaskId: input.parentTaskId, childTaskIds: [], order: data.tasks.filter((candidate) => JSON.stringify(candidate.location) === JSON.stringify(input.location) && candidate.parentTaskId === input.parentTaskId).length + 1, tagIds: normaliseTagIdsForScope(data, input.tagIds, "task"), quantifierSelections: normaliseQuantifierSelections(data.quantifierDefinitions, input.quantifierSelections), mustDoToday: false, aggregate: false, completedAt: null, cancelledAt: null, checklist: input.checklist.map((item, index) => ({ ...item, order: index + 1 })) };
   const next = input.parentTaskId ? convertToAggregate(data, input.parentTaskId, task.id) : data;
   return { ...next, tasks: [...next.tasks, task], activity: [...next.activity, createActivity("task", task.id, "created", `Created "${task.title}"`)] };
 }
@@ -245,7 +245,7 @@ export function saveTaskCommand(data: AppData, taskId: string, input: TaskDraftI
   const title = input.title.trim();
   if (!title) throw new DomainError("Task title is required.");
   let next = JSON.stringify(existing.location) !== JSON.stringify(input.location) || existing.parentTaskId !== input.parentTaskId ? moveTaskSubtreeCommand(data, taskId, input.parentTaskId ? { type: "parent", parentTaskId: input.parentTaskId } : { type: "root", location: input.location }) : data;
-  const patch: Partial<Task> = existing.aggregate ? { title, location: input.location, parentTaskId: input.parentTaskId } : { title, description: input.description.trim(), statusId: input.statusId, priorityId: input.priorityId, scheduledDate: input.scheduledDate, revealDate: input.revealDate, mustDoToday: false, location: input.location, parentTaskId: input.parentTaskId, tagIds: [...input.tagIds], quantifierSelections: normaliseQuantifierSelections(data.quantifierDefinitions, input.quantifierSelections ?? existing.quantifierSelections), checklist: input.checklist.map((item, index) => ({ ...item, order: index + 1 })) };
+  const patch: Partial<Task> = existing.aggregate ? { title, location: input.location, parentTaskId: input.parentTaskId } : { title, description: input.description.trim(), statusId: input.statusId, priorityId: input.priorityId, scheduledDate: input.scheduledDate, revealDate: input.revealDate, mustDoToday: false, location: input.location, parentTaskId: input.parentTaskId, tagIds: normaliseTagIdsForScope(data, input.tagIds, "task"), quantifierSelections: normaliseQuantifierSelections(data.quantifierDefinitions, input.quantifierSelections ?? existing.quantifierSelections), checklist: input.checklist.map((item, index) => ({ ...item, order: index + 1 })) };
   const movedExisting = next.tasks.find((task) => task.id === taskId) ?? existing;
   const updated = { ...movedExisting, ...patch, updatedAt: nowIso(), version: movedExisting.version + 1 };
   const events: ActivityEvent[] = [];
@@ -335,7 +335,6 @@ function validateReferenceListDraft(data: AppData, input: ReferenceListDraftInpu
   const title = input.title.trim();
   if (!title) throw new DomainError("List title is required.");
   validateReferenceListLocation(data, input.location);
-  if (input.tagIds.some((tagId) => !data.tags.some((tag) => tag.id === tagId && !tag.deletedAt && tag.allowedScopes.includes("referenceList")))) throw new DomainError("Choose List tags only.");
   return title;
 }
 function validateReferenceListDraftForUpdate(data: AppData, existing: ReferenceList, input: ReferenceListDraftInput): string {
@@ -347,7 +346,6 @@ function validateReferenceListDraftForUpdate(data: AppData, existing: ReferenceL
     unchangedArchivedProject = data.projects.some((project) => project.id === projectId && !project.deletedAt && project.archivedAt);
   }
   if (!unchangedArchivedProject) validateReferenceListLocation(data, input.location);
-  if (input.tagIds.some((tagId) => !data.tags.some((tag) => tag.id === tagId && !tag.deletedAt && tag.allowedScopes.includes("referenceList")))) throw new DomainError("Choose List tags only.");
   return title;
 }
 function referenceListLocationLabel(data: AppData, location: ReferenceListLocation): string {
@@ -584,8 +582,31 @@ export function reorderPriorityCommand(data: AppData, priorityId: string, direct
 
 export interface TagDraftInput { name: string; description: string; color: string; allowedScopes: TagScope[]; tagGroupId: string | null }
 export interface TagGroupDraftInput { name: string; description: string; color?: string | null; mutuallyExclusive: boolean; inherited?: Record<string, boolean> }
-export function assignmentCountsForTag(data: AppData, tagId: string) { return { tasks: data.tasks.filter((task) => task.tagIds.includes(tagId)).length, projects: data.projects.filter((project) => project.tagIds.includes(tagId)).length, referenceLists: data.referenceLists.filter((list) => list.tagIds.includes(tagId)).length }; }
-function entityScopeForCollection(collection: "tasks" | "projects" | "referenceLists"): TagScope { return collection === "tasks" ? "task" : collection === "projects" ? "project" : "referenceList"; }
+export function assignmentCountsForTag(data: AppData, tagId: string) { return { tasks: data.tasks.filter((task) => task.tagIds.includes(tagId)).length, projects: data.projects.filter((project) => project.tagIds.includes(tagId)).length, referenceLists: data.referenceLists.filter((list) => list.tagIds.includes(tagId)).length, referenceListEntries: data.referenceListEntries.filter((entry) => entry.tagIds.includes(tagId)).length, recurrenceRules: data.recurrenceRules.filter((rule) => rule.template.tagIds.includes(tagId)).length }; }
+export function normaliseTagIdsForScope(data: AppData, tagIds: string[], scope: TagScope): string[] {
+  const allowed = new Set(data.tags.filter((tag) => !tag.deletedAt && tag.allowedScopes.includes(scope)).map((tag) => tag.id));
+  return [...new Set(tagIds)].filter((tagId) => allowed.has(tagId));
+}
+export function hasInvalidTagAssignments(data: Partial<AppData>): boolean {
+  const tags = data.tags ?? [];
+  const invalid = (tagIds: string[] | undefined, scope: TagScope) => (tagIds ?? []).some((tagId) => !tags.some((tag) => tag.id === tagId && !tag.deletedAt && tag.allowedScopes.includes(scope)));
+  return (data.tasks ?? []).some((task) => invalid(task.tagIds, "task"))
+    || (data.projects ?? []).some((project) => invalid(project.tagIds, "project"))
+    || (data.referenceLists ?? []).some((list) => invalid(list.tagIds, "referenceList"))
+    || (data.referenceListEntries ?? []).some((entry) => invalid(entry.tagIds, "referenceList"))
+    || (data.recurrenceRules ?? []).some((rule) => invalid(rule.template?.tagIds, "task"));
+}
+export function cleanseInvalidTagAssignments(data: AppData): AppData {
+  if (!hasInvalidTagAssignments(data)) return data;
+  return {
+    ...data,
+    tasks: data.tasks.map((task) => ({ ...task, tagIds: normaliseTagIdsForScope(data, task.tagIds, "task") })),
+    projects: data.projects.map((project) => ({ ...project, tagIds: normaliseTagIdsForScope(data, project.tagIds, "project") })),
+    referenceLists: data.referenceLists.map((list) => ({ ...list, tagIds: normaliseTagIdsForScope(data, list.tagIds, "referenceList") })),
+    referenceListEntries: data.referenceListEntries.map((entry) => ({ ...entry, tagIds: normaliseTagIdsForScope(data, entry.tagIds, "referenceList") })),
+    recurrenceRules: data.recurrenceRules.map((rule) => ({ ...rule, template: { ...rule.template, tagIds: normaliseTagIdsForScope(data, rule.template.tagIds, "task") } })),
+  };
+}
 function validateTagDraft(data: AppData, input: TagDraftInput, tagId: string | null): string {
   const name = input.name.trim();
   if (!name) throw new DomainError("Tag name is required.");
@@ -609,19 +630,27 @@ function repairExclusiveTagConflicts(data: AppData, groupId: string, preserveTag
   const tasks = data.tasks.map((task) => { const nextIds = repairIds(task.tagIds); if (nextIds === task.tagIds || JSON.stringify(nextIds) === JSON.stringify(task.tagIds)) return task; events.push(createActivity("task", task.id, "tagsChanged", "Tag conflict repaired", task.tagIds, nextIds)); return { ...task, tagIds: nextIds, updatedAt: at, version: task.version + 1 }; });
   const projects = data.projects.map((project) => { const nextIds = repairIds(project.tagIds); if (nextIds === project.tagIds || JSON.stringify(nextIds) === JSON.stringify(project.tagIds)) return project; events.push(createActivity("project", project.id, "tagsChanged", "Tag conflict repaired", project.tagIds, nextIds)); return { ...project, tagIds: nextIds, updatedAt: at, version: project.version + 1 }; });
   const referenceLists = data.referenceLists.map((list) => { const nextIds = repairIds(list.tagIds); if (nextIds === list.tagIds || JSON.stringify(nextIds) === JSON.stringify(list.tagIds)) return list; events.push(createActivity("referenceList", list.id, "tagsChanged", "Tag conflict repaired", list.tagIds, nextIds)); return { ...list, tagIds: nextIds, updatedAt: at, version: list.version + 1 }; });
-  return { data: { ...data, tasks, projects, referenceLists }, events };
+  const referenceListEntries = data.referenceListEntries.map((entry) => { const nextIds = repairIds(entry.tagIds); if (JSON.stringify(nextIds) === JSON.stringify(entry.tagIds)) return entry; events.push(createActivity("referenceListEntry", entry.id, "tagsChanged", "Tag conflict repaired", entry.tagIds, nextIds)); return { ...entry, tagIds: nextIds, updatedAt: at, version: entry.version + 1 }; });
+  const recurrenceRules = data.recurrenceRules.map((rule) => { const nextIds = repairIds(rule.template.tagIds); if (JSON.stringify(nextIds) === JSON.stringify(rule.template.tagIds)) return rule; events.push(createActivity("recurrenceRule", rule.id, "tagsChanged", "Schedule Task Tag conflict repaired", rule.template.tagIds, nextIds)); return { ...rule, template: { ...rule.template, tagIds: nextIds }, updatedAt: at, version: rule.version + 1 }; });
+  return { data: { ...data, tasks, projects, referenceLists, referenceListEntries, recurrenceRules }, events };
 }
 function detachTagFromUnsupportedScopes(data: AppData, tagId: string, scopes: TagScope[]) {
   const allowed = new Set(scopes);
   const at = nowIso();
   const events: ActivityEvent[] = [];
-  const detach = <T extends Task | Project | ReferenceList>(record: T, scope: TagScope): T => {
+  const detach = <T extends Task | Project | ReferenceList | ReferenceListEntry>(record: T, scope: TagScope): T => {
     if (allowed.has(scope) || !record.tagIds.includes(tagId)) return record;
     const nextIds = record.tagIds.filter((id) => id !== tagId);
     events.push(createActivity(record.kind, record.id, "tagsChanged", "Tag detached after scope change", record.tagIds, nextIds));
     return { ...record, tagIds: nextIds, updatedAt: at, version: record.version + 1 };
   };
-  return { data: { ...data, tasks: data.tasks.map((task) => detach(task, "task")), projects: data.projects.map((project) => detach(project, "project")), referenceLists: data.referenceLists.map((list) => detach(list, "referenceList")) }, events };
+  const recurrenceRules = data.recurrenceRules.map((rule) => {
+    if (allowed.has("task") || !rule.template.tagIds.includes(tagId)) return rule;
+    const tagIds = rule.template.tagIds.filter((id) => id !== tagId);
+    events.push(createActivity("recurrenceRule", rule.id, "tagsChanged", "Schedule Task Tag detached after scope change", rule.template.tagIds, tagIds));
+    return { ...rule, template: { ...rule.template, tagIds }, updatedAt: at, version: rule.version + 1 };
+  });
+  return { data: { ...data, tasks: data.tasks.map((task) => detach(task, "task")), projects: data.projects.map((project) => detach(project, "project")), referenceLists: data.referenceLists.map((list) => detach(list, "referenceList")), referenceListEntries: data.referenceListEntries.map((entry) => detach(entry, "referenceList")), recurrenceRules }, events };
 }
 export function createTagCommand(data: AppData, input: TagDraftInput): AppData {
   const name = validateTagDraft(data, input, null);
@@ -688,13 +717,19 @@ export function deleteTagCommand(data: AppData, tagId: string): AppData {
   if (!tag) throw new DomainError("Tag not found.");
   const at = nowIso();
   const events: ActivityEvent[] = [createActivity("tag", tagId, "softDeleted", `Tag moved to Trash: ${tag.name}`)];
-  const remove = <T extends Task | Project | ReferenceList>(record: T): T => {
+  const remove = <T extends Task | Project | ReferenceList | ReferenceListEntry>(record: T): T => {
     if (!record.tagIds.includes(tagId)) return record;
     const nextIds = record.tagIds.filter((id) => id !== tagId);
     events.push(createActivity(record.kind, record.id, "tagsChanged", "Tag removed by Tag deletion", record.tagIds, nextIds));
     return { ...record, tagIds: nextIds, updatedAt: at, version: record.version + 1 };
   };
-  return { ...data, tasks: data.tasks.map(remove), projects: data.projects.map(remove), referenceLists: data.referenceLists.map(remove), tags: data.tags.map((candidate) => candidate.id === tagId ? { ...candidate, deletedAt: at, updatedAt: at, version: candidate.version + 1 } : candidate), activity: [...data.activity, ...events] };
+  const recurrenceRules = data.recurrenceRules.map((rule) => {
+    if (!rule.template.tagIds.includes(tagId)) return rule;
+    const tagIds = rule.template.tagIds.filter((id) => id !== tagId);
+    events.push(createActivity("recurrenceRule", rule.id, "tagsChanged", "Schedule Task Tag removed by Tag deletion", rule.template.tagIds, tagIds));
+    return { ...rule, template: { ...rule.template, tagIds }, updatedAt: at, version: rule.version + 1 };
+  });
+  return { ...data, tasks: data.tasks.map(remove), projects: data.projects.map(remove), referenceLists: data.referenceLists.map(remove), referenceListEntries: data.referenceListEntries.map(remove), recurrenceRules, tags: data.tags.map((candidate) => candidate.id === tagId ? { ...candidate, deletedAt: at, updatedAt: at, version: candidate.version + 1 } : candidate), activity: [...data.activity, ...events] };
 }
 export function createTagGroupCommand(data: AppData, input: TagGroupDraftInput): AppData {
   const name = input.name.trim();
@@ -755,7 +790,7 @@ export function addReferenceEntries(data: AppData, listId: string, pastedText: s
   const start = active.length;
   const entries = lines.map((line, index): ReferenceListEntry => {
     const parsed = parseReferenceEntryLine(line);
-    return { ...createMeta("refentry"), kind: "referenceListEntry", referenceListId: listId, text: parsed.text, link: parsed.link, orderKey: makeOrderKey(start + index + 1), tagIds: tagIds.filter((tagId) => data.tags.find((tag) => tag.id === tagId)?.allowedScopes.includes("referenceList")) };
+    return { ...createMeta("refentry"), kind: "referenceListEntry", referenceListId: listId, text: parsed.text, link: parsed.link, orderKey: makeOrderKey(start + index + 1), tagIds: normaliseTagIdsForScope(data, tagIds, "referenceList") };
   });
   return { ...data, referenceListEntries: [...data.referenceListEntries, ...entries], activity: [...data.activity, createActivity("referenceList", listId, "referenceEntriesAdded", `Added ${entries.length} List Items`, null, { entryIds: entries.map((entry) => entry.id), itemCount: entries.length })] };
 }
@@ -793,7 +828,6 @@ export function validateRecurrenceRuleInput(data: AppData, input: RecurrenceRule
   if (input.frequency === "monthly" && (!input.dayOfMonth || input.dayOfMonth < 1 || input.dayOfMonth > 31)) throw new DomainError("Choose a monthly day from 1 to 31.");
   validateRecurrenceDestination(data, input.template.location);
   if (!data.priorities.some((priority) => priority.id === input.template.priorityId && !priority.deletedAt)) throw new DomainError("Choose an available Priority.");
-  if (input.template.tagIds.some((tagId) => !data.tags.some((tag) => tag.id === tagId && !tag.deletedAt && tag.allowedScopes.includes("task")))) throw new DomainError("Choose Task tags only.");
 }
 export function createRecurrenceRuleCommand(data: AppData, input: RecurrenceRuleInput, effectiveDate = localDate()): AppData {
   validateRecurrenceRuleInput(data, input);
@@ -867,7 +901,7 @@ export function generateDueRecurrences(data: AppData, today = localDate()): AppD
 export function nextRecurrenceDate(rule: RecurrenceRule, fromDate: string): string { if (rule.frequency === "daily") return addDays(fromDate, Math.max(1, rule.interval)); if (rule.frequency === "weekly") { const selected = rule.weekdays.length ? [...rule.weekdays].sort((a, b) => a - b) : [weekdayIndex(fromDate)]; for (let offset = 1; offset <= 7 * Math.max(1, rule.interval); offset++) { const candidate = addDays(fromDate, offset); if (selected.includes(weekdayIndex(candidate))) return candidate; } } return addMonthsPinned(fromDate, Math.max(1, rule.interval), rule.dayOfMonth ?? Number(fromDate.slice(8, 10))); }
 export function missedOccurrenceGroups(data: AppData, today = localDate()) { return data.recurrenceRules.map((rule) => { const taskIds = new Set(data.recurrenceGenerations.filter((generation) => generation.ruleId === rule.id && generation.occurrenceDate < today).map((generation) => generation.taskId)); const openTasks = data.tasks.filter((task) => taskIds.has(task.id) && !task.deletedAt && !isTaskClosed(data, task)); return { ruleId: rule.id, count: openTasks.length, taskIds: openTasks.map((task) => task.id) }; }).filter((group) => group.count > 1); }
 function normaliseRecurrenceTemplate(data: AppData, template: RecurrenceTaskTemplate): RecurrenceTaskTemplate {
-  return { title: template.title.trim(), description: template.description.trim(), statusId: defaultStatusId(data), priorityId: template.priorityId, location: template.location, revealDate: template.revealDate, tagIds: [...template.tagIds], quantifierSelections: normaliseQuantifierSelections(data.quantifierDefinitions, template.quantifierSelections), mustDoToday: false, dueOnOccurrence: template.dueOnOccurrence !== false, checklist: [] };
+  return { title: template.title.trim(), description: template.description.trim(), statusId: defaultStatusId(data), priorityId: template.priorityId, location: template.location, revealDate: template.revealDate, tagIds: normaliseTagIdsForScope(data, template.tagIds, "task"), quantifierSelections: normaliseQuantifierSelections(data.quantifierDefinitions, template.quantifierSelections), mustDoToday: false, dueOnOccurrence: template.dueOnOccurrence !== false, checklist: [] };
 }
 export function recurrenceDestinationProblem(data: AppData, location: TaskLocation): { reason: RecurrenceAttentionReason; message: string } | null {
   if (location.type === "inbox" || location.type === "someday") return null;
@@ -951,7 +985,7 @@ export function createExportEnvelope(data: AppData, metadata: { applicationVersi
     },
   };
 }
-export function createInitialBakeryState(at = new Date()): BakeryState { return { schemaVersion:6,catalogueSchemaVersion:BAKERY_CATALOGUE_SCHEMA_VERSION,marketConfigVersion:BAKERY_MARKET_SCHEMA_VERSION,balanceDataVersion:2,productMarkets:[createProductMarket("sugar-donut",at)],marketPriceObservations:[],balances:Object.fromEntries(ALL_RESOURCE_IDS.map((id)=>[id,0])),finishedProducts:{},unlockedSupplierIds:[],unlockedRecipeIds:["sugar-donut"],revealedRecipeIds:["sugar-donut","glazed-donut"],purchasedIngredientIds:[],activeContracts:[],rewardLedger:[],resourceTransactions:[],completedSaleIds:[],completedMilestones:[],purchasedUpgrades:[],displaySlots:[1,2,3,4].map(n=>({id:`display-${n}`,unlocked:n===1,stack:null})),displayQueue:[],activeCampaigns:[],productSpotlights:[],foundationCapabilities:["multi-craft","recipe-categories"],savedPriceStrategies:{},favouriteRecipeIds:[],statistics:{lifetimeSugarEarned:0,lifetimeCoinEarned:0,lifetimeCoinSpent:0,totalDonutsCrafted:0,totalDonutsSold:0,removedContracts:0,completedContracts:0,returnedProducts:0,campaignsPurchased:0,upgradeLevelsPurchased:0,bakedByProduct:{},soldByProduct:{},coinByProduct:{},productSales:{},ingredientsPurchasedByType:{},coinSpentOnSuppliers:0,coinSpentOnIngredients:0,coinSpentOnRecipes:0,coinSpentOnAdvertising:0,coinSpentOnUpgrades:0,recipesRevealed:2,recipesUnlocked:1,suppliersUnlocked:0,highestCompletedAskingPrice:0,lastCompletedSaleAt:null,lastSaleResolutionAt:null}}; }
+export function createInitialBakeryState(at = new Date()): BakeryState { return { schemaVersion:6,catalogueSchemaVersion:BAKERY_CATALOGUE_SCHEMA_VERSION,marketConfigVersion:BAKERY_MARKET_SCHEMA_VERSION,balanceDataVersion:2,productMarkets:[createProductMarket("sugar-donut",at)],marketPriceObservations:[],balances:Object.fromEntries(ALL_RESOURCE_IDS.map((id)=>[id,0])),finishedProducts:{},unlockedSupplierIds:[],unlockedRecipeIds:["sugar-donut"],revealedRecipeIds:discoverableRecipeIds([],[],["sugar-donut"]),purchasedIngredientIds:[],activeContracts:[],rewardLedger:[],resourceTransactions:[],completedSaleIds:[],completedMilestones:[],purchasedUpgrades:[],displaySlots:[1,2,3,4].map(n=>({id:`display-${n}`,unlocked:n===1,stack:null})),displayQueue:[],activeCampaigns:[],productSpotlights:[],foundationCapabilities:["multi-craft","recipe-categories"],savedPriceStrategies:{},favouriteRecipeIds:[],statistics:{lifetimeSugarEarned:0,lifetimeCoinEarned:0,lifetimeCoinSpent:0,totalDonutsCrafted:0,totalDonutsSold:0,removedContracts:0,completedContracts:0,returnedProducts:0,campaignsPurchased:0,upgradeLevelsPurchased:0,bakedByProduct:{},soldByProduct:{},coinByProduct:{},productSales:{},ingredientsPurchasedByType:{},coinSpentOnSuppliers:0,coinSpentOnIngredients:0,coinSpentOnRecipes:0,coinSpentOnAdvertising:0,coinSpentOnUpgrades:0,recipesRevealed:discoverableRecipeIds([],[],["sugar-donut"]).length,recipesUnlocked:1,suppliersUnlocked:0,highestCompletedAskingPrice:0,lastCompletedSaleAt:null,lastSaleResolutionAt:null}}; }
 export function normaliseBakeryState(value?:Partial<BakeryState>,at=new Date()):BakeryState { const initial=createInitialBakeryState(at),unlockedSupplierIds=[...new Set(value?.unlockedSupplierIds??[])],unlockedRecipeIds=[...new Set([...(value?.unlockedRecipeIds??initial.unlockedRecipeIds),"sugar-donut"])],purchasedIngredientIds=[...new Set(value?.purchasedIngredientIds??[])],revealedRecipeIds=[...new Set([...(value?.revealedRecipeIds??initial.revealedRecipeIds),"sugar-donut","glazed-donut",...discoverableRecipeIds(purchasedIngredientIds,unlockedSupplierIds,unlockedRecipeIds)])],existing=new Map((value?.productMarkets??[]).map(m=>[m.productId,m])),productMarkets=unlockedRecipeIds.filter(id=>marketConfigFor(id)).map(id=>{const m=existing.get(id),c=marketConfigFor(id)!;return m?{...m,demand:Math.max(c.minimumDemand,Math.min(c.maximumDemand,m.demand))}:createProductMarket(id,at)}),slots=(value?.displaySlots?.length?value.displaySlots:initial.displaySlots).map((slot,i)=>({...slot,id:`display-${i+1}`,unlocked:i===0||slot.unlocked,stack:slot.stack??null})),activeContracts=(value?.activeContracts??[]).map((contract,i)=>({...contract,slotId:contract.slotId??slots[i]?.id??"display-1"})); const legacySprinkles=value?.balanceDataVersion===undefined||(value?.balanceDataVersion??0)<2?(value?.balances?.sprinkles??0):0,conversionOperation=`bakery-economy-v2`,conversionEntries=legacySprinkles>0?[{id:`bakery_tx_legacy-sprinkles-removed`,operationId:conversionOperation,type:"legacy-resource-converted",itemId:"sprinkles",amount:-legacySprinkles,source:"reward-economy-v1",timestamp:at.toISOString(),idempotencyKey:"bakery-economy-v2:sprinkles-removed"},{id:`bakery_tx_legacy-sugar-added`,operationId:conversionOperation,type:"legacy-resource-converted",itemId:"sugar",amount:legacySprinkles,source:"reward-economy-v1",timestamp:at.toISOString(),idempotencyKey:"bakery-economy-v2:sugar-added"}]:[]; return {...initial,...value,schemaVersion:6,balanceDataVersion:2,catalogueSchemaVersion:BAKERY_CATALOGUE_SCHEMA_VERSION,marketConfigVersion:BAKERY_MARKET_SCHEMA_VERSION,productMarkets,marketPriceObservations:value?.marketPriceObservations??[],balances:{...initial.balances,...(value?.balances??{}),sprinkles:legacySprinkles>0?0:(value?.balances?.sprinkles??0),sugar:(value?.balances?.sugar??0)+legacySprinkles},finishedProducts:{...(value?.finishedProducts??{})},unlockedSupplierIds,unlockedRecipeIds,revealedRecipeIds,purchasedIngredientIds,activeContracts,rewardLedger:value?.rewardLedger??[],resourceTransactions:[...(value?.resourceTransactions??[]),...conversionEntries],completedSaleIds:value?.completedSaleIds??[],completedMilestones:value?.completedMilestones??[],purchasedUpgrades:(value?.purchasedUpgrades??[]).map((upgrade)=>({...upgrade})),displaySlots:slots,displayQueue:value?.displayQueue??[],activeCampaigns:value?.activeCampaigns??[],productSpotlights:value?.productSpotlights??[],foundationCapabilities:[...new Set([...(value?.foundationCapabilities??[]),"multi-craft","recipe-categories"])],savedPriceStrategies:value?.savedPriceStrategies??{},favouriteRecipeIds:value?.favouriteRecipeIds??[],statistics:{...initial.statistics,...(value?.statistics??{}),lifetimeSugarEarned:(value?.statistics?.lifetimeSugarEarned??0)+legacySprinkles,recipesRevealed:Math.max(value?.statistics?.recipesRevealed??0,revealedRecipeIds.length),recipesUnlocked:Math.max(value?.statistics?.recipesUnlocked??0,unlockedRecipeIds.length),bakedByProduct:{...(value?.statistics?.bakedByProduct??{})},soldByProduct:{...(value?.statistics?.soldByProduct??{})},coinByProduct:{...(value?.statistics?.coinByProduct??{})},productSales:{...(value?.statistics?.productSales??{})},ingredientsPurchasedByType:{...(value?.statistics?.ingredientsPurchasedByType??{})}}}; }
 function normaliseReferenceListsForMigration(lists: ReferenceList[]): ReferenceList[] { return lists.map((list) => { const { description: _description, tagline: _tagline, ...cleanList } = list as ReferenceList & { description?: string; tagline?: string }; return { ...cleanList, location: cleanList.location ?? (cleanList.projectId ? { type: "project", projectId: cleanList.projectId } : cleanList.areaId ? { type: "area", areaId: cleanList.areaId } : { type: "loose" }), content: cleanList.content ?? { type: "plainItems", items: [] }, tagIds: cleanList.tagIds ?? [], quantifierSelections: cleanList.quantifierSelections ?? {}, color: cleanList.color ?? null, icon: cleanList.icon ?? "list-ordered" }; }); }
 export function migrateAppData(raw: Partial<AppData>, at = new Date()): AppData {
@@ -986,7 +1020,7 @@ export function migrateAppData(raw: Partial<AppData>, at = new Date()): AppData 
   const recurrenceRules = (data.recurrenceRules ?? []).map((rule) => ({ ...rule, interval: Math.max(1, rule.interval ?? 1), weekdays: rule.weekdays ?? [], dayOfMonth: rule.dayOfMonth ?? null, pausedAt: rule.pausedAt ?? null, lastProcessedOccurrenceKey: rule.lastProcessedOccurrenceKey ?? (rule.lastGeneratedDate ? recurrenceOccurrenceKey(rule.id, rule.lastGeneratedDate) : null), lastSuccessfulProcessingAt: rule.lastSuccessfulProcessingAt ?? null, attention: rule.attention ?? null, template: { ...rule.template, quantifierSelections: migrateSelections(rule.template.tagIds ?? [], rule.template.quantifierSelections), dueOnOccurrence: rule.template.dueOnOccurrence !== false, checklist: rule.template.checklist ?? [] } }));
   const recurrenceGenerations = (data.recurrenceGenerations ?? []).map((generation) => ({ ...generation, occurrenceKey: generation.occurrenceKey ?? recurrenceOccurrenceKey(generation.ruleId, generation.occurrenceDate), collapsedCount: generation.collapsedCount ?? 1, firstMissedDate: generation.firstMissedDate ?? generation.occurrenceDate, lastMissedDate: generation.lastMissedDate ?? generation.occurrenceDate, operationId: generation.operationId ?? `legacy:${generation.ruleId}:${generation.occurrenceDate}` }));
   const defaultPriorityIdValue = data.settings?.defaultPriorityId && priorities.some((priority) => priority.id === data.settings!.defaultPriorityId && !priority.deletedAt) ? data.settings.defaultPriorityId : priorities.find((priority) => !priority.deletedAt && priority.rank === 3)?.id ?? priorities.find((priority) => !priority.deletedAt)?.id ?? "priority_normal";
-  return {
+  const migrated: AppData = {
     ...data,
     statuses,
     priorities,
@@ -1010,6 +1044,7 @@ export function migrateAppData(raw: Partial<AppData>, at = new Date()): AppData 
     settings: { upcomingDays: data.settings?.upcomingDays ?? 14, timezone: data.settings?.timezone ?? APP_TIMEZONE, backendProvider: data.settings?.backendProvider ?? "local-development", defaultPriorityId: defaultPriorityIdValue },
     bakery: normaliseBakeryState(data.bakery, at),
   };
+  return cleanseInvalidTagAssignments(migrated);
 }
 
 function makeOrderKey(order: number): string { return order.toString().padStart(8, "0"); }

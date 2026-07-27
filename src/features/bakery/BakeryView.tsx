@@ -1,5 +1,5 @@
-import { Filter, Lock, Plus } from "lucide-react";
-import { useState } from "react";
+import { Check, ChevronDown, Filter, Lock, Plus, X } from "lucide-react";
+import { useState, type CSSProperties } from "react";
 import { AppData, DomainError } from "../../domain";
 import { ingredientEntriesInPurchaseOrder, ingredientIdsInPurchaseOrder, INGREDIENTS, INGREDIENT_BY_ID, PRODUCTS, PRODUCT_BY_ID, RECIPES, RECIPE_CATEGORIES, SUPPLIERS, SUPPLIER_BY_ID } from "../../domain/bakeryCatalogue";
 import { ADVERTISING, ALL_UPGRADES as UPGRADES, ownedLevel } from "../../domain/bakeryBusiness";
@@ -7,8 +7,8 @@ import { Button } from "../../shared/components/Button";
 import { CurrencyAmount } from "../../shared/components/CurrencyAmount";
 import { bakeryArtUrl, BakeryArt } from "./artRegistry";
 import { BakeryInsights } from "./BakeryInsights";
-import { ProductId, craft, currentProductMarket, ingredientPackQuote, listProduct, maxCraftable, maximumAskingPrice, purchaseIngredient, purchaseRecipe, purchaseSupplier, purchaseSupplierBasicPack, removeContract, supplierBasicPackQuote } from "./bakeryDomain";
-import { advertisingCost, displayCapacity, hasUpgrade, listWithStrategy, purchaseCampaignWithProgress, purchaseUpgradeWithProgress, queueCapacity, queueProduct, removeQueueEntry } from "./bakeryBusinessDomain";
+import { ProductId, craft, currentProductMarket, ingredientPackQuote, maxCraftable, maximumAskingPrice, purchaseIngredient, purchaseRecipe, purchaseSupplier, purchaseSupplierBasicPack, removeContract, saleDurationMs, supplierBasicPackQuote } from "./bakeryDomain";
+import { advertisingCost, displayCapacity, hasUpgrade, listCustomInSlot, listWithStrategy, purchaseCampaignWithProgress, purchaseUpgradeWithProgress, queueCapacity, queueProduct, removeQueueEntry } from "./bakeryBusinessDomain";
 import { activeProofingScheduleLevel, formatProofingWindowLength, pendingProofingActivationDate, purchasedProofingScheduleLevel } from "../../domain/bakeryProofing";
 
 type Tab = "pantry" | "kitchen" | "display" | "business" | "insights" | "donuts";
@@ -21,6 +21,13 @@ const ingredientSources: Record<string, string> = {
   icing: "Earned by completing Projects. Also stocked by the Starting shop.",
   ...Object.fromEntries(INGREDIENTS.filter((ingredient) => !["dough", "sugar", "icing"].includes(ingredient.id)).map((ingredient) => [ingredient.id, `Stocked by ${SUPPLIER_BY_ID[ingredient.supplierId].name}.`])),
 };
+const supplierTabLabels: Record<string, string> = {
+  "starting-shop": "Basic",
+  "common-supplier": "Common",
+  "filling-supplier": "Filling",
+  "artisan-supplier": "Artisan",
+  "premium-supplier": "Premium",
+};
 
 export function BakeryView({ data, commit, confirm }: {
   data: AppData;
@@ -28,12 +35,10 @@ export function BakeryView({ data, commit, confirm }: {
   confirm: (request: { title: string; message: string; confirmLabel: string; onConfirm: () => void }) => void;
 }) {
   const [tab, setTab] = useState<Tab>(() => (sessionStorage.getItem("todonut.bakery.tab") as Tab) || "pantry");
-  const [product, setProduct] = useState<ProductId>(data.bakery.unlockedRecipeIds[0] ?? "sprinkle-donut");
+  const [displayProduct, setDisplayProduct] = useState<ProductId | null>(null);
   const [prices, setPrices] = useState<Record<string, number>>({});
   const now = new Date();
-  const activeProduct = data.bakery.unlockedRecipeIds.includes(product) ? product : (data.bakery.unlockedRecipeIds[0] ?? "sprinkle-donut");
-  const market = currentProductMarket(data, activeProduct, now).marketPrice;
-  const price = Math.min(prices[activeProduct] ?? market, maximumAskingPrice(market));
+  const activeProduct = data.bakery.unlockedRecipeIds[0] ?? "sprinkle-donut";
   const changeTab = (next: Tab) => {
     setTab(next);
     sessionStorage.setItem("todonut.bakery.tab", next);
@@ -57,7 +62,7 @@ export function BakeryView({ data, commit, confirm }: {
       </div>
       {tab === "pantry" && <PantryPanel data={data} run={run} />}
       {tab === "kitchen" && <KitchenPanel data={data} run={run} now={now} />}
-      {tab === "display" && <DisplayPanel data={data} run={run} confirm={confirm} now={now} product={activeProduct} setProduct={setProduct} price={price} market={market} setPrice={(value) => setPrices({ ...prices, [activeProduct]: value })} />}
+      {tab === "display" && <DisplayPanel data={data} run={run} confirm={confirm} now={now} product={displayProduct} setProduct={setDisplayProduct} prices={prices} setPrice={(id, value) => setPrices({ ...prices, [id]: value })} />}
       {tab === "business" && <BusinessPanel data={data} run={run} activeProduct={activeProduct} />}
       {tab === "insights" && <BakeryInsights data={data} run={run} activeProduct={activeProduct} now={now} />}
       {tab === "donuts" && <DonutGalleryPanel data={data} />}
@@ -114,11 +119,11 @@ function PantryPanel({ data, run }: { data: AppData; run: (fn: () => AppData, me
         <div className="shop-tabs" role="tablist" aria-label="Ingredient shops">
           {SUPPLIERS.map((candidate) => {
             const available = candidate.id === "starting-shop" || data.bakery.unlockedSupplierIds.includes(candidate.id);
-            return <button key={candidate.id} type="button" role="tab" aria-selected={supplier.id === candidate.id} aria-label={`${candidate.name}${available ? "" : ", locked"}`} className={`${supplier.id === candidate.id ? "active" : ""} ${available ? "" : "locked"}`} onClick={() => setSupplierId(candidate.id)}><SupplierTabVisual supplierName={candidate.name} /></button>;
+            return <button key={candidate.id} type="button" role="tab" aria-selected={supplier.id === candidate.id} aria-label={`${supplierTabLabels[candidate.id]}${available ? "" : ", locked"}`} className={`${supplier.id === candidate.id ? "active" : ""} ${available ? "" : "locked"}`} onClick={() => setSupplierId(candidate.id)}><SupplierTabVisual supplierName={candidate.name} label={supplierTabLabels[candidate.id]} /></button>;
           })}
         </div>
         <div className="shop-panel" role="tabpanel" aria-label={supplier.name}>
-          {!unlocked && supplier.id !== "starting-shop" && <div className="supplier-action"><p>{supplier.prerequisiteSupplierId ? `Requires ${SUPPLIER_BY_ID[supplier.prerequisiteSupplierId].name}` : "Available"}</p><Button disabled={Boolean(supplier.prerequisiteSupplierId && !data.bakery.unlockedSupplierIds.includes(supplier.prerequisiteSupplierId)) || data.bakery.balances.coin < supplier.cost} onClick={() => run(() => purchaseSupplier(data, supplier.id), `${supplier.name} unlocked`)}>Unlock <CurrencyAmount amount={supplier.cost} /></Button></div>}
+          {!unlocked && supplier.id !== "starting-shop" && <SupplierUnlockAction supplier={supplier} data={data} run={run} />}
           {unlocked && ingredientIdsInPurchaseOrder(supplier.ingredientIds).map((id) => {
             const item = INGREDIENT_BY_ID[id];
             const ordinary = ingredientPackQuote(data.bakery, id, "ordinary");
@@ -140,14 +145,27 @@ function PantryPanel({ data, run }: { data: AppData; run: (fn: () => AppData, me
 function StockIngredient({ ingredientId, value, open, setOpen }: { ingredientId: string; value: number; open: boolean; setOpen: (open: boolean) => void }) {
   const ingredient = INGREDIENT_BY_ID[ingredientId];
   const tooltipId = `ingredient-source-${ingredientId}`;
-  return <div className={`stock-ingredient${value === 0 ? " is-empty" : ""}`}><button type="button" className="stock-ingredient__trigger" aria-expanded={open} aria-describedby={open ? tooltipId : undefined} aria-label={`${ingredient.name}: ${value}. ${ingredientSources[ingredientId]}`} onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)} onFocus={() => setOpen(true)} onBlur={() => setOpen(false)} onClick={() => setOpen(!open)}><BakeryArt assetKey={ingredient.assetKey} /><strong>{value}</strong></button>{open && <span id={tooltipId} className="stock-ingredient__tooltip" role="tooltip"><strong>{ingredient.name}</strong>{ingredientSources[ingredientId]}</span>}</div>;
+  return <div className={`stock-ingredient${value === 0 ? " is-empty" : ""}`}><button type="button" className="stock-ingredient__trigger" aria-expanded={open} aria-describedby={open ? tooltipId : undefined} aria-label={`${ingredient.name}: ${value}. ${ingredientSources[ingredientId]}`} onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)} onFocus={() => setOpen(true)} onBlur={() => setOpen(false)} onClick={() => setOpen(!open)}><BakeryArt assetKey={ingredient.assetKey} /><strong>{value}</strong><span>{ingredient.name}</span></button>{open && <span id={tooltipId} className="stock-ingredient__tooltip" role="tooltip"><strong>{ingredient.name}</strong>{ingredientSources[ingredientId]}</span>}</div>;
 }
 
-function SupplierTabVisual({ supplierName }: { supplierName: string }) {
+function SupplierTabVisual({ supplierName, label }: { supplierName: string; label: string }) {
   const firstWord = supplierName.split(" ")[0];
   const src = bakeryArtUrl(`shop-${firstWord.toLowerCase()}`);
-  if (!src) return <span className="supplier-tab-visual supplier-tab-visual--fallback" aria-hidden="true">{firstWord}</span>;
-  return <span className="supplier-tab-visual" aria-hidden="true"><img src={src} alt="" /></span>;
+  return <><span className={`supplier-tab-visual${src ? "" : " supplier-tab-visual--fallback"}`} aria-hidden="true">{src ? <img src={src} alt="" /> : label[0]}</span><span>{label}</span></>;
+}
+
+function SupplierUnlockAction({ supplier, data, run }: { supplier: (typeof SUPPLIERS)[number]; data: AppData; run: (fn: () => AppData, message: string) => void }) {
+  const [tooltipOpen, setTooltipOpen] = useState(false);
+  const requirements = [
+    { label: `${supplier.cost} Coin`, met: data.bakery.balances.coin >= supplier.cost },
+    ...(supplier.prerequisiteSupplierId ? [{ label: SUPPLIER_BY_ID[supplier.prerequisiteSupplierId].name, met: data.bakery.unlockedSupplierIds.includes(supplier.prerequisiteSupplierId) }] : []),
+  ];
+  const ready = requirements.every((requirement) => requirement.met);
+  const tooltipId = `supplier-unlock-${supplier.id}`;
+  return <div className="supplier-unlock-action" onMouseEnter={() => setTooltipOpen(true)} onMouseLeave={() => setTooltipOpen(false)} onFocus={() => setTooltipOpen(true)} onBlur={() => setTooltipOpen(false)} tabIndex={ready ? -1 : 0} aria-describedby={tooltipOpen ? tooltipId : undefined}>
+    <Button disabled={!ready} onClick={() => run(() => purchaseSupplier(data, supplier.id), `${supplier.name} unlocked`)}>Unlock</Button>
+    {tooltipOpen && <span id={tooltipId} className="display-slot__tooltip display-slot__tooltip--requirements supplier-unlock-action__tooltip" role="tooltip"><strong>Unlock requirements</strong>{requirements.map((requirement) => <span key={requirement.label} className={requirement.met ? "met" : "unmet"}>{requirement.met ? <Check aria-hidden="true" /> : <X aria-hidden="true" />}{requirement.label}</span>)}</span>}
+  </div>;
 }
 
 function KitchenPanel({ data, run, now }: {
@@ -158,15 +176,32 @@ function KitchenPanel({ data, run, now }: {
   const recipeOrder = (left: typeof RECIPES[number], right: typeof RECIPES[number]) => left.neutralPrice - right.neutralPrice || left.name.localeCompare(right.name);
   const unlockedRecipes = RECIPES.filter((recipe) => data.bakery.unlockedRecipeIds.includes(recipe.id)).sort(recipeOrder);
   const availableRecipes = RECIPES.filter((recipe) => data.bakery.revealedRecipeIds.includes(recipe.id) && !data.bakery.unlockedRecipeIds.includes(recipe.id)).sort(recipeOrder);
+  const recipeCategories = RECIPE_CATEGORIES.map((category) => ({
+    category,
+    unlocked: unlockedRecipes.filter((recipe) => recipe.category === category),
+    available: availableRecipes.filter((recipe) => recipe.category === category),
+  })).filter((group) => group.unlocked.length + group.available.length > 0);
+  const useRecipeCategories = unlockedRecipes.some((recipe) => recipe.category !== "Starting");
   const products = PRODUCTS.filter((product) => (data.bakery.finishedProducts[product.id] ?? 0) > 0).sort((left, right) => left.neutralPrice - right.neutralPrice || left.name.localeCompare(right.name));
   return (
     <div role="tabpanel">
       <section className="bakery-section kitchen-recipes-section">
         <div className="bakery-section-heading"><h3>Recipes</h3><span className="kitchen-filter-placeholder" role="img" aria-label="Recipe filters"><Filter aria-hidden="true" /></span></div>
-        <div className="kitchen-recipe-list">
+        {useRecipeCategories ? <div className="kitchen-recipe-categories">
+          {recipeCategories.map((group) => <details className="bakery-recipe-category" key={group.category}>
+            <summary>
+              <span className="bakery-recipe-category__label"><strong>{group.category}</strong><span>Bake: {group.unlocked.length}, Recipes: {group.available.length}</span></span>
+              <ChevronDown className="bakery-recipe-category__chevron" aria-hidden="true" />
+            </summary>
+            <div className="kitchen-recipe-list">
+              {group.unlocked.map((recipe) => <KitchenRecipe key={recipe.id} recipe={recipe} data={data} run={run} now={now} />)}
+              {group.available.map((recipe) => <KitchenRecipe key={recipe.id} recipe={recipe} data={data} run={run} now={now} />)}
+            </div>
+          </details>)}
+        </div> : <div className="kitchen-recipe-list">
           {unlockedRecipes.map((recipe) => <KitchenRecipe key={recipe.id} recipe={recipe} data={data} run={run} now={now} />)}
           {availableRecipes.map((recipe) => <KitchenRecipe key={recipe.id} recipe={recipe} data={data} run={run} now={now} />)}
-        </div>
+        </div>}
       </section>
       <section className="bakery-section kitchen-products-section">
         <div className="bakery-section-heading"><h3>Products</h3></div>
@@ -182,11 +217,11 @@ function KitchenRecipe({ recipe, data, run, now }: { recipe: typeof RECIPES[numb
   const produced = (data.bakery.statistics.bakedByProduct[recipe.productId] ?? 0) > 0 || (data.bakery.statistics.soldByProduct[recipe.productId] ?? 0) > 0;
   const artState = !owned || !produced ? "silhouette" : craftable ? "ready" : "unavailable";
   return <article className="kitchen-recipe-row">
+    <span className={`kitchen-recipe-row__art ${artState}`}><BakeryArt assetKey={recipe.productId} /></span>
     <div className="kitchen-recipe-row__summary">
-      <span className={`kitchen-recipe-row__art ${artState}`}><BakeryArt assetKey={recipe.productId} /></span>
       <div className="kitchen-recipe-row__details"><div className="kitchen-recipe-row__title-line"><strong>{recipe.name}</strong><MarketAmount value={owned ? currentProductMarketSafe(data, recipe.productId, now) : null} /></div></div>
-      {owned ? <Button disabled={!craftable} onClick={() => run(() => craft(data, recipe.id, 1), `${recipe.name} baked`)}>Bake</Button> : <Button disabled={data.bakery.balances.coin < recipe.price} onClick={() => run(() => purchaseRecipe(data, recipe.id), `${recipe.name} recipe purchased`)}>Buy recipe <CurrencyAmount amount={recipe.price} /></Button>}
     </div>
+    {owned ? <Button className="kitchen-recipe-row__bake-button" disabled={!craftable} onClick={() => run(() => craft(data, recipe.id, 1), `${recipe.name} baked`)}><BakeryArt assetKey={craftable ? "bake" : "no-bake"} />Bake</Button> : <Button disabled={data.bakery.balances.coin < recipe.price} onClick={() => run(() => purchaseRecipe(data, recipe.id), `${recipe.name} recipe purchased`)}>Buy recipe <CurrencyAmount amount={recipe.price} /></Button>}
     <div className="kitchen-recipe-row__ingredients">{ingredientEntriesInPurchaseOrder(recipe.ingredients).map(([ingredientId, amount], index) => <span className="kitchen-recipe-row__ingredient" key={ingredientId}>{index > 0 && <Plus aria-hidden="true" />}<strong>{amount}</strong><KitchenIngredient ingredientId={ingredientId} held={data.bakery.balances[ingredientId] ?? 0} supplierAvailable={INGREDIENT_BY_ID[ingredientId].supplierId === "starting-shop" || data.bakery.unlockedSupplierIds.includes(INGREDIENT_BY_ID[ingredientId].supplierId)} /> <span>({data.bakery.balances[ingredientId] ?? 0})</span></span>)}</div>
   </article>;
 }
@@ -202,7 +237,7 @@ function KitchenIngredient({ ingredientId, held, supplierAvailable }: { ingredie
 function KitchenProduct({ product, quantity }: { product: typeof PRODUCTS[number]; quantity: number }) {
   const [open, setOpen] = useState(false);
   const tooltipId = `kitchen-product-${product.id}`;
-  return <div className="kitchen-product"><button type="button" aria-describedby={open ? tooltipId : undefined} aria-expanded={open} aria-label={`${product.name}: ${quantity}`} onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)} onFocus={() => setOpen(true)} onBlur={() => setOpen(false)}><BakeryArt assetKey={product.assetKey} /><strong>{quantity}</strong></button>{open && <span id={tooltipId} className="stock-ingredient__tooltip" role="tooltip"><strong>{product.name}</strong></span>}</div>;
+  return <div className="kitchen-product"><button type="button" aria-describedby={open ? tooltipId : undefined} aria-expanded={open} aria-label={`${product.name}: ${quantity}`} onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)} onFocus={() => setOpen(true)} onBlur={() => setOpen(false)}><BakeryArt assetKey={product.assetKey} /><strong>{quantity}</strong><span>{product.name}</span></button>{open && <span id={tooltipId} className="stock-ingredient__tooltip" role="tooltip"><strong>{product.name}</strong></span>}</div>;
 }
 
 function currentProductMarketSafe(data: AppData, id: string, now: Date): number | null {
@@ -210,50 +245,61 @@ function currentProductMarketSafe(data: AppData, id: string, now: Date): number 
 }
 
 function MarketAmount({ value }: { value: number | null }) {
-  return value === null ? <span className="kitchen-recipe-row__market-lock" role="img" aria-label="Recipe locked"><Lock aria-hidden="true" /></span> : <CurrencyAmount amount={value} />;
+  return value === null ? <span className="kitchen-recipe-row__market-lock" role="img" aria-label="Recipe locked"><Lock aria-hidden="true" /></span> : <><CurrencyAmount amount={value} /><span className="kitchen-recipe-row__market-duration"> (8h)</span></>;
 }
 
-function DisplayPanel({ data, run, confirm, now, product, setProduct, price, market, setPrice }: {
+function DisplayPanel({ data, run, confirm, now, product, setProduct, prices, setPrice }: {
   data: AppData;
   run: (fn: () => AppData, message: string) => void;
   confirm: (request: { title: string; message: string; confirmLabel: string; onConfirm: () => void }) => void;
   now: Date;
-  product: string;
-  setProduct: (id: string) => void;
-  price: number;
-  market: number;
-  setPrice: (value: number) => void;
+  product: ProductId | null;
+  setProduct: (id: ProductId | null) => void;
+  prices: Record<string, number>;
+  setPrice: (id: string, value: number) => void;
 }) {
+  const heldProducts = PRODUCTS.filter((item) => (data.bakery.finishedProducts[item.id] ?? 0) > 0)
+    .sort((left, right) => left.neutralPrice - right.neutralPrice || left.name.localeCompare(right.name));
+  const selectedProduct = product && heldProducts.some((item) => item.id === product) ? PRODUCT_BY_ID[product] : null;
+  const market = selectedProduct ? currentProductMarket(data, selectedProduct.id, now).marketPrice : null;
+  const price = market === null ? null : Math.min(prices[selectedProduct!.id] ?? market, maximumAskingPrice(market));
   const available = data.bakery.displaySlots.some((slot) => slot.unlocked && !data.bakery.activeContracts.some((contract) => (contract.slotId ?? "display-1") === slot.id));
   const presets = ownedLevel(data.bakery.purchasedUpgrades, "saved-price-presets") > 0;
+  const unlockedSlots = data.bakery.displaySlots.filter((slot) => slot.unlocked);
+  const nextLockedSlot = data.bakery.displaySlots.find((slot) => !slot.unlocked);
   return (
     <div role="tabpanel">
-      <div className="display-grid">
-        {data.bakery.displaySlots.map((slot) => {
+      <section className="bakery-section display-for-sale-section">
+        <div className="bakery-section-heading"><h3>For Sale</h3></div>
+        <div className="display-grid">
+        {[...unlockedSlots, ...(nextLockedSlot ? [nextLockedSlot] : [])].map((slot) => {
           const contract = data.bakery.activeContracts.find((item) => (item.slotId ?? "display-1") === slot.id);
           return (
-            <section className={`bakery-section display-slot ${slot.unlocked ? "" : "locked"}`} key={slot.id}>
-              <h4>{slot.id.replace("display-", "Display ")}</h4>
-              {!slot.unlocked ? <p>Locked - purchase in Business</p> : contract ? (
-                <>
-                  <BakeryArt assetKey={contract.productId} />
-                  <p>{PRODUCT_BY_ID[contract.productId]?.name}</p>
-                  <p><strong><CurrencyAmount amount={contract.askingPrice} /> fixed</strong></p>
-                  <p>{Math.max(0, (new Date(contract.completesAt).getTime() - now.getTime()) / 3_600_000).toFixed(1)} hours remaining</p>
-                  <Button variant="ghost" onClick={() => confirm({ title: "Remove sale contract", message: "The product returns to inventory and elapsed progress is lost.", confirmLabel: "Remove", onConfirm: () => run(() => removeContract(data, contract.id), "Contract removed") })}>Remove</Button>
-                </>
-              ) : <p>Empty</p>}
-            </section>
+            !slot.unlocked
+              ? <LockedDisplaySlot key={slot.id} slotId={slot.id} data={data} run={run} />
+              : <DisplaySlot key={slot.id} contract={contract} data={data} confirm={confirm} run={run} now={now} />
           );
         })}
-      </div>
-      <section className="bakery-section">
-        <label>Finished product <select value={product} onChange={(event) => setProduct(event.target.value)}>{PRODUCTS.filter((item) => data.bakery.unlockedRecipeIds.includes(item.id)).map((item) => <option key={item.id} value={item.id}>{item.name} ({data.bakery.finishedProducts[item.id] ?? 0})</option>)}</select></label>
-        <p>Current 8-hour market price: <CurrencyAmount amount={market} /></p>
-        <label>Custom asking price: <CurrencyAmount amount={price} /><input className="price-slider" type="range" min="1" max={maximumAskingPrice(market)} value={price} onChange={(event) => setPrice(Number(event.target.value))} /></label>
-        <Button disabled={!available || !(data.bakery.finishedProducts[product] ?? 0)} onClick={() => run(() => listProduct(data, product, price, now), "Donut listed")}>List custom price</Button>
-        {presets && <div className="strategy-actions">{(["quick", "market", "premium"] as const).map((strategy) => <Button key={strategy} disabled={!available || !(data.bakery.finishedProducts[product] ?? 0)} onClick={() => run(() => listWithStrategy(data, product, strategy), `${strategy} listing created`)}>{strategy}</Button>)}</div>}
-        {queueCapacity(data.bakery) > 0 && <Button variant="ghost" disabled={data.bakery.displayQueue.length >= queueCapacity(data.bakery) || !(data.bakery.finishedProducts[product] ?? 0)} onClick={() => run(() => queueProduct(data, product, "market"), "Product queued")}>Queue at future market price</Button>}
+        </div>
+      </section>
+      <section className="bakery-section display-offerings-section">
+        <div className="bakery-section-heading"><h3>Offerings</h3></div>
+        <DisplayProductPicker products={heldProducts} selectedProduct={selectedProduct} onSelect={setProduct} />
+        {selectedProduct && market !== null && price !== null && (
+          <div className="display-offering-controls">
+            <div className="display-market-information">
+              <strong>Market Information</strong>
+              <p><span>8-Hour Price:</span> <CurrencyAmount amount={market} /></p>
+            </div>
+            <p className="display-offer-price"><strong>Offer Price:</strong> <CurrencyAmount amount={price} />{price !== market && <span>({formatOfferDuration(saleDurationMs(market, price))})</span>}</p>
+            <label className="display-price-control">Set Price
+              <input className="price-slider display-price-slider" type="range" min="1" max={maximumAskingPrice(market)} value={price} style={displaySliderStyle(selectedProduct.assetKey)} onChange={(event) => setPrice(selectedProduct.id, Number(event.target.value))} />
+            </label>
+            <Button className="display-list-for-sale-button" disabled={!available} onClick={() => run(() => listCustomInSlot(data, selectedProduct.id, price, undefined, now), "Donut listed")}><BakeryArt assetKey="list-for-sale" />List For Sale</Button>
+            {presets && <div className="strategy-actions">{(["quick", "market", "premium"] as const).map((strategy) => <Button key={strategy} disabled={!available} onClick={() => run(() => listWithStrategy(data, selectedProduct.id, strategy), `${strategy} listing created`)}>{strategy}</Button>)}</div>}
+            {queueCapacity(data.bakery) > 0 && <Button variant="ghost" disabled={data.bakery.displayQueue.length >= queueCapacity(data.bakery)} onClick={() => run(() => queueProduct(data, selectedProduct.id, "market"), "Product queued")}>Queue at future market price</Button>}
+          </div>
+        )}
       </section>
       {queueCapacity(data.bakery) > 0 && (
         <section className="bakery-section">
@@ -263,6 +309,78 @@ function DisplayPanel({ data, run, confirm, now, product, setProduct, price, mar
       )}
     </div>
   );
+}
+
+function DisplaySlot({ contract, data, confirm, run, now }: {
+  contract: AppData["bakery"]["activeContracts"][number] | undefined;
+  data: AppData;
+  confirm: (request: { title: string; message: string; confirmLabel: string; onConfirm: () => void }) => void;
+  run: (fn: () => AppData, message: string) => void;
+  now: Date;
+}) {
+  const [tooltipOpen, setTooltipOpen] = useState(false);
+  if (!contract) return <article className="display-slot display-slot--empty"><div className="display-slot__stage"><BakeryArt assetKey="bakery-display-background" label="Empty display" /></div><p>Empty</p></article>;
+  const product = PRODUCT_BY_ID[contract.productId];
+  const tooltipId = `display-sale-time-${contract.id}`;
+  return <article className="display-slot display-slot--sale">
+    <div className="display-slot__stage" onMouseEnter={() => setTooltipOpen(true)} onMouseLeave={() => setTooltipOpen(false)} onFocus={() => setTooltipOpen(true)} onBlur={() => setTooltipOpen(false)} tabIndex={0} aria-describedby={tooltipOpen ? tooltipId : undefined}>
+      <BakeryArt assetKey="bakery-display-background" label="Display shelf" />
+      <BakeryArt assetKey={contract.productId} label={product?.name} />
+      {tooltipOpen && <span id={tooltipId} className="display-slot__tooltip" role="tooltip">{formatRemainingTime(new Date(contract.completesAt).getTime() - now.getTime())}</span>}
+    </div>
+    <p className="display-slot__product-name">{product?.name}</p>
+    <CurrencyAmount amount={contract.askingPrice} />
+    <Button className="icon-button display-slot__remove" variant="ghost" aria-label="Remove" title="Remove" onClick={() => confirm({ title: "Remove sale contract", message: "The product returns to inventory and elapsed progress is lost.", confirmLabel: "Remove", onConfirm: () => run(() => removeContract(data, contract.id), "Contract removed") })}><X aria-hidden="true" /></Button>
+  </article>;
+}
+
+function LockedDisplaySlot({ slotId, data, run }: { slotId: string; data: AppData; run: (fn: () => AppData, message: string) => void }) {
+  const [tooltipOpen, setTooltipOpen] = useState(false);
+  const upgradeId = `display-slot-${slotId.replace("display-", "")}`;
+  const upgrade = UPGRADES.find((item) => item.id === upgradeId);
+  if (!upgrade) return null;
+  const nextLevel = upgrade.levels[ownedLevel(data.bakery.purchasedUpgrades, upgrade.id)];
+  if (!nextLevel) return null;
+  const requirements = [
+    { label: `${nextLevel.cost} Coin`, met: data.bakery.balances.coin >= nextLevel.cost },
+    ...upgrade.prerequisites.map((id) => ({ label: UPGRADES.find((item) => item.id === id)?.name ?? id, met: hasUpgrade(data.bakery, id) })),
+  ];
+  const ready = requirements.every((requirement) => requirement.met);
+  const tooltipId = `display-unlock-${slotId}`;
+  return <article className="display-slot display-slot--locked">
+    <div className="display-slot__stage"><BakeryArt assetKey="bakery-display-background" label="Locked display" /></div>
+    <div className="display-slot__unlock" onMouseEnter={() => setTooltipOpen(true)} onMouseLeave={() => setTooltipOpen(false)} onFocus={() => setTooltipOpen(true)} onBlur={() => setTooltipOpen(false)} tabIndex={ready ? -1 : 0} aria-describedby={tooltipOpen ? tooltipId : undefined}>
+      <Button disabled={!ready} onClick={() => run(() => purchaseUpgradeWithProgress(data, upgrade.id), `${upgrade.name} purchased`)}>Unlock</Button>
+      {tooltipOpen && <span id={tooltipId} className="display-slot__tooltip display-slot__tooltip--requirements" role="tooltip"><strong>Unlock requirements</strong>{requirements.map((requirement) => <span key={requirement.label} className={requirement.met ? "met" : "unmet"}>{requirement.met ? <Check aria-hidden="true" /> : <X aria-hidden="true" />}{requirement.label}</span>)}</span>}
+    </div>
+  </article>;
+}
+
+function DisplayProductPicker({ products, selectedProduct, onSelect }: { products: ReadonlyArray<(typeof PRODUCTS)[number]>; selectedProduct: (typeof PRODUCTS)[number] | null; onSelect: (id: ProductId | null) => void }) {
+  const [open, setOpen] = useState(false);
+  const listId = "display-product-options";
+  const disabled = products.length === 0;
+  return <div className="display-product-picker">
+    <span className="display-product-picker__label">Product</span>
+    <button type="button" className="display-product-picker__trigger" disabled={disabled} aria-expanded={open} aria-controls={listId} onClick={() => setOpen((value) => !value)}>
+      {selectedProduct ? <><BakeryArt assetKey={selectedProduct.assetKey} /><span>{selectedProduct.name}</span></> : <span>Select a product</span>}<ChevronDown aria-hidden="true" />
+    </button>
+    {open && <div id={listId} className="display-product-picker__options" role="listbox" aria-label="Available products">{products.map((item) => <button type="button" role="option" aria-selected={selectedProduct?.id === item.id} key={item.id} onClick={() => { onSelect(item.id); setOpen(false); }}><BakeryArt assetKey={item.assetKey} /><span>{item.name}</span></button>)}</div>}
+  </div>;
+}
+
+function formatRemainingTime(remainingMs: number) {
+  const remainingMinutes = Math.max(0, Math.ceil(remainingMs / 60_000));
+  return `${Math.floor(remainingMinutes / 60)}:${String(remainingMinutes % 60).padStart(2, "0")} hours remaining`;
+}
+
+function formatOfferDuration(durationMs: number) {
+  return `${(durationMs / 3_600_000).toFixed(1)}h`;
+}
+
+function displaySliderStyle(assetKey: string): CSSProperties | undefined {
+  const artUrl = bakeryArtUrl(assetKey);
+  return artUrl ? { "--display-product-art": `url("${artUrl}")` } as CSSProperties : undefined;
 }
 
 function BusinessPanel({ data, run, activeProduct }: { data: AppData; run: (fn: () => AppData, message: string) => void; activeProduct: string }) {

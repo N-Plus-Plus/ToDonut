@@ -37,6 +37,7 @@ export class FeedbackStore {
       action: input.action,
       createdAt: Date.now(),
       operationId: input.operationId,
+      coinAmount: input.coinAmount,
     };
     this.replaceMessages([...withoutDuplicate, message].slice(-this.maxVisible));
     return message;

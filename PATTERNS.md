@@ -504,6 +504,8 @@ The host should:
 
 Use transient feedback for concise operation results.
 
+Each confirmed mutation produces at most one success notice. When a confirmed callback supplies a richer action-bearing notice such as Undo, it must suppress the generic shared-commit success notice; do not stack both for the same operation.
+
 Do not use it for:
 
 * field validation;

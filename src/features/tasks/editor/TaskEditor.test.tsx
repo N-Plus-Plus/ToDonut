@@ -1,7 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { AppData } from "../../../domain";
+import { AppData, createRecurrenceRuleCommand, processDueRecurrenceSchedules } from "../../../domain";
 import { QUANTIFIER_IDS } from "../../../domain";
 import { createSeedData } from "../../../seed";
 import { TaskEditor, datePickerOverlayPosition } from "./TaskEditor";
@@ -124,6 +124,38 @@ describe("TaskEditor", () => {
     expect(screen.queryByText("Seed task created")).not.toBeInTheDocument();
   });
 
+  it("renames a generated Schedule Task as an independent Task", async () => {
+    const data = generatedScheduleTaskData();
+    const task = data.tasks.find((candidate) => candidate.recurrence)!;
+    const commit = vi.fn(async () => true);
+    const onClose = vi.fn();
+    render(<TaskEditor data={data} mode={{ type: "edit", taskId: task.id }} onClose={onClose} commit={commit} />);
+
+    fireEvent.change(screen.getByLabelText("Task title"), { target: { value: "Renamed generated Task" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
+
+    await waitFor(() => expect(commit).toHaveBeenCalledTimes(1));
+    const saved = (commit.mock.calls as unknown as Array<[AppData]>)[0][0].tasks.find((candidate) => candidate.id === task.id)!;
+    expect(saved.title).toBe("Renamed generated Task");
+    expect(saved.recurrence).toEqual(task.recurrence);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps a generated Schedule Task editor open and explains a failed save", async () => {
+    const data = generatedScheduleTaskData();
+    const task = data.tasks.find((candidate) => candidate.recurrence)!;
+    const commit = vi.fn(async () => false);
+    const onClose = vi.fn();
+    render(<TaskEditor data={data} mode={{ type: "edit", taskId: task.id }} onClose={onClose} commit={commit} />);
+
+    fireEvent.change(screen.getByLabelText("Task title"), { target: { value: "Still editing" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
+
+    await waitFor(() => expect(screen.getByText("Task could not be saved. Please try again.")).toBeInTheDocument());
+    expect(screen.getByLabelText("Task title")).toHaveValue("Still editing");
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it("prefills an empty Due Date with the Sydney local date only on focus", () => {
     renderEditor();
 
@@ -234,6 +266,32 @@ describe("TaskEditor", () => {
     expect(screen.getByRole("button", { name: /Move Unchecked item down/i })).toBeInTheDocument();
   });
 });
+
+function generatedScheduleTaskData(): AppData {
+  const seed = createSeedData();
+  const scheduled = createRecurrenceRuleCommand(seed, {
+    label: "Daily follow-up",
+    frequency: "daily",
+    interval: 1,
+    weekdays: [],
+    dayOfMonth: null,
+    firstScheduledDate: "2026-07-01",
+    endDate: null,
+    template: {
+      title: "Scheduled follow-up",
+      description: "",
+      statusId: seed.statuses[0].id,
+      priorityId: seed.priorities[0].id,
+      location: { type: "inbox" },
+      revealDate: null,
+      tagIds: [],
+      mustDoToday: false,
+      dueOnOccurrence: true,
+      checklist: [],
+    },
+  }, "2026-07-01");
+  return processDueRecurrenceSchedules(scheduled, "2026-07-01").data;
+}
 
 describe("date picker overlay positioning", () => {
   it("clamps a picker above the trigger to the visible top edge", () => {

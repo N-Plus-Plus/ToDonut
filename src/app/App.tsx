@@ -7,6 +7,7 @@ import {
   ChevronDown,
   ChevronUp,
   CircleDot,
+  Copy,
   Download,
   Eye,
   EyeClosed,
@@ -79,6 +80,7 @@ import {
   descendants,
   isTaskClosed,
   moveTaskSubtreeCommand,
+  normaliseTagIdsForScope,
   nowIso,
   statusCategory,
   processDueRecurrenceSchedules,
@@ -199,6 +201,7 @@ import {
   reverseRewards,
 } from "../features/bakery/bakeryDomain";
 import { resolveBakeryTimeline } from "../features/bakery/bakeryBusinessDomain";
+import { PRODUCT_BY_ID } from "../domain/bakeryCatalogue";
 import {
   activeOrderedAreas,
   activeOrderedProjects,
@@ -621,12 +624,13 @@ function Application() {
         a.completesAt.localeCompare(b.completesAt) || a.id.localeCompare(b.id),
     )[0];
     if (!contract || syncState.canonicalRevision === null) return;
-    const delay = Math.max(
-      0,
-      Math.min(60000, new Date(contract.completesAt).getTime() - Date.now()),
-    );
+    const delay = Math.max(0, new Date(contract.completesAt).getTime() - Date.now());
     const timer = window.setTimeout(() => {
       const next = resolveBakeryTimeline(data);
+      const completedContracts = next.bakery.completedSaleIds
+        .filter((id) => !data.bakery.completedSaleIds.includes(id))
+        .map((id) => data.bakery.activeContracts.find((candidate) => candidate.id === id))
+        .filter((candidate): candidate is NonNullable<typeof candidate> => Boolean(candidate));
       if (next !== data)
         void commit(
           next,
@@ -634,10 +638,23 @@ function Application() {
             (id) => !data.bakery.completedSaleIds.includes(id),
           ),
           "Donut sold",
+          data,
+          syncState.canonicalRevision,
+          () => {
+            for (const completed of completedContracts) {
+              const product = PRODUCT_BY_ID[completed.productId];
+              feedback.success(`${product?.name ?? "Product"} sold for`, {
+                coinAmount: completed.askingPrice,
+                scope: "global",
+                dedupeKey: `sale:${completed.id}`,
+              });
+            }
+          },
+          false,
         );
     }, delay);
     return () => window.clearTimeout(timer);
-  }, [data.bakery.activeContracts, syncState.canonicalRevision]);
+  }, [data, syncState.canonicalRevision]);
   useEffect(() => {
     if (
       !syncState.canonicalStateKnown ||
@@ -874,6 +891,7 @@ function Application() {
               },
             );
         },
+        result.generatedCount === 0,
       );
     } finally {
       recurrenceFlight.current = false;
@@ -1132,6 +1150,7 @@ function Application() {
             },
           });
         },
+        false,
       );
     } catch (error) {
       feedback.error(
@@ -1220,6 +1239,7 @@ function Application() {
             },
           });
         },
+        false,
       );
     } catch (error) {
       feedback.error(
@@ -1294,6 +1314,7 @@ function Application() {
           },
         });
       },
+      false,
     );
   }
   function runBulk(command: BulkTaskCommand) {
@@ -1384,6 +1405,7 @@ function Application() {
               },
             });
           },
+          false,
         );
       if (
         (command.type === "complete" ||
@@ -1431,6 +1453,7 @@ function Application() {
             } });
             feedback.info(currentTask.aggregate ? "Task tree reopened" : "Task reopened", { scope: "route", action: { label: "Undo", run: () => void completionUndo.execute(receipt.id) } });
           },
+          false,
         );
       } catch (error) {
         feedback.error(
@@ -1451,7 +1474,6 @@ function Application() {
       operationId,
     );
     const affectedIds = changedTaskIds(baseData, rewarded);
-    const beforeTasks = baseData.tasks.filter((candidate) => affectedIds.includes(candidate.id));
     const gains = [
       ["dough", "Dough"],
       ["sprinkles", "Sprinkles"],
@@ -1476,31 +1498,6 @@ function Application() {
       message,
       baseData,
       confirmedRevisionRef.current,
-      (saved, revision) => {
-        const receipt = completionUndo.register({
-          id: `undo:${operationId}`,
-          label: "Undo Task completion",
-          expiresAt: Date.now() + 10000,
-          run: () => {
-            const restored = restoreTaskSnapshots(saved, beforeTasks, affectedIds, "Undo Task tree completion", "complete-tree");
-            void commit(
-              reverseRewards(restored, operationId, `undo:${operationId}`),
-              affectedIds,
-              "Completion undone",
-              saved,
-              revision,
-            );
-          },
-        });
-        feedback.info(message, {
-          scope: "route",
-          dedupeKey: `completion:${currentTask.id}`,
-          action: {
-            label: "Undo",
-            run: () => void completionUndo.execute(receipt.id),
-          },
-        });
-      },
     );
   }
   function taskDefaults(): Pick<Task, "location" | "scheduledDate"> {
@@ -1701,8 +1698,8 @@ function Application() {
             <div className="topbar-title-row">
               {detailBackTarget && <button type="button" className="icon-button button ghost entity-back-button" aria-label="Back" title="Back" onClick={navigateBackFromDetail}><ArrowLeft aria-hidden="true" /></button>}
               {settingsBackVisible && <button type="button" className="icon-button button ghost entity-back-button" aria-label="Back to Settings" title="Back to Settings" onClick={navigateBackFromSettings}><ArrowLeft aria-hidden="true" /></button>}
-              <h2 style={selectedList?.color ? { color: selectedList.color } : undefined}>
-                {PageTitleIcon && <PageTitleIcon className={`mobile-page-title-icon${view === "bakery" ? " bakery-page-title-icon" : ""}`} aria-hidden="true" />}
+              <h2>
+                {PageTitleIcon && <PageTitleIcon className={`mobile-page-title-icon${view === "bakery" ? " bakery-page-title-icon" : ""}`} style={selectedList?.color ? { color: selectedList.color } : undefined} aria-hidden="true" />}
                 <span className="entity-title-text">{title}</span>
                 {(selectedList || selectedProject) && (
                   <QuantifierTitleIcons
@@ -1735,6 +1732,11 @@ function Application() {
               createMultipleListItems={
                 selectedList && !selectedList.archivedAt
                   ? () => setModal({ kind: "listItem", mode: "multiple" })
+                  : null
+              }
+              copyListItems={
+                selectedList
+                  ? () => void navigator.clipboard?.writeText(listItemTitlesForClipboard(data, selectedList.id))
                   : null
               }
               signOut={
@@ -2020,6 +2022,7 @@ function Application() {
                         },
                       });
                     },
+                    false,
                   );
                 },
               });
@@ -2098,6 +2101,7 @@ function Application() {
                         },
                       });
                     },
+                    false,
                   );
                 },
               });
@@ -2225,7 +2229,7 @@ function Application() {
               void commit(undone, createdIds, "List Items removed", confirmedData, revision);
             } });
             feedback.info(`${createdIds.length} List Items added`, { scope: "route", action: { label: "Undo", run: () => void completionUndo.execute(receipt.id) } });
-          })}
+          }, false)}
         />
       )}
       {taskEditor && (
@@ -2317,6 +2321,7 @@ function Application() {
                   },
                 });
               },
+              editedTaskId === null,
             );
           }}
           createScheduleFromTask={(taskId) => {
@@ -3338,14 +3343,16 @@ function NavButton({
   );
 }
 
-function ApplicationMenu({
+export function ApplicationMenu({
   view,
   createMultipleListItems,
+  copyListItems,
   signOut,
   exportData,
 }: {
   view: ViewId;
   createMultipleListItems: (() => void) | null;
+  copyListItems: (() => void) | null;
   signOut: (() => void) | null;
   exportData: () => void;
 }) {
@@ -3422,6 +3429,17 @@ function ApplicationMenu({
             >
               <FileStack aria-hidden="true" />
               <span>Multiple</span>
+            </button>
+          )}
+          {copyListItems && (
+            <button
+              type="button"
+              className="application-menu__item"
+              role="menuitem"
+              onClick={() => choose(copyListItems)}
+            >
+              <Copy aria-hidden="true" />
+              <span>Copy</span>
             </button>
           )}
           {signOut && (
@@ -4031,7 +4049,7 @@ function CreationModal({
         const project = activeModal.project;
         const updated = {
           ...project,
-          tagIds: projectTagIds,
+          tagIds: normaliseTagIdsForScope(data, projectTagIds, "project"),
           updatedAt: new Date().toISOString(),
           version: project.version + 1,
         };
@@ -4049,7 +4067,7 @@ function CreationModal({
                 "tagsChanged",
                 "Project tags changed",
                 project.tagIds,
-                projectTagIds,
+                updated.tagIds,
               ),
             ],
           },
@@ -4852,6 +4870,14 @@ function StatusAppearancePicker({
   );
 }
 
+export function listItemTitlesForClipboard(data: AppData, listId: string) {
+  return data.referenceListEntries
+    .filter((entry) => entry.referenceListId === listId && !entry.deletedAt)
+    .sort((left, right) => left.orderKey.localeCompare(right.orderKey))
+    .map((entry) => entry.text)
+    .join("\r\n");
+}
+
 export function ListRow({
   data,
   list,
@@ -4880,6 +4906,16 @@ export function ListRow({
   const index = orderedIds.indexOf(list.id);
   const showReorderHandle = Boolean(reorderList);
   const manualReorderEnabled = showReorderHandle && canReorder !== false;
+  useEffect(() => {
+    if (!dragOver) return;
+    const clearDropIndicator = () => setDragOver(false);
+    window.addEventListener("dragend", clearDropIndicator);
+    window.addEventListener("drop", clearDropIndicator);
+    return () => {
+      window.removeEventListener("dragend", clearDropIndicator);
+      window.removeEventListener("drop", clearDropIndicator);
+    };
+  }, [dragOver]);
   return (
     <div
       className={`list-browser__row list-row-action reference-list-row ${showReorderHandle ? "reference-list-row--reorderable" : ""} ${dragOver ? "drop-before" : ""}`}
@@ -4998,6 +5034,10 @@ function ReferenceListDetail({
     next: AppData,
     expectedIds?: string[],
     successMessage?: string,
+    baseData?: AppData,
+    expectedRevision?: number | null,
+    confirmed?: (saved: AppData, revision: number) => void,
+    showSuccessFeedback?: boolean,
   ) => Promise<boolean>;
   editEntry: (entry: ReferenceListEntry) => void;
   editList: (list: ReferenceList) => void;
@@ -5056,15 +5096,20 @@ function ReferenceListDetail({
       softDeleteCommand(data, "referenceListEntry", entry.id),
       [entry.id],
       "List item deleted",
-    );
-    feedback.info("List item deleted", {
-      scope: "route",
-      dedupeKey: `delete:${entry.id}`,
-      action: {
-        label: "Undo",
-        run: () => void undoService.execute(receipt.id),
+      data,
+      undefined,
+      () => {
+        feedback.info("List item deleted", {
+          scope: "route",
+          dedupeKey: `delete:${entry.id}`,
+          action: {
+            label: "Undo",
+            run: () => void undoService.execute(receipt.id),
+          },
+        });
       },
-    });
+      false,
+    );
   }
   const tags = list.tagIds
     .map((id) => data.tags.find((tag) => tag.id === id && !tag.deletedAt))
@@ -5181,6 +5226,16 @@ function ReferenceEntryRow({
   const [dragOver, setDragOver] = useState(false);
   const [swipe, setSwipe] = useState(0);
   const start = useRef<{ x: number; y: number } | null>(null);
+  useEffect(() => {
+    if (!dragOver) return;
+    const clearDropIndicator = () => setDragOver(false);
+    window.addEventListener("dragend", clearDropIndicator);
+    window.addEventListener("drop", clearDropIndicator);
+    return () => {
+      window.removeEventListener("dragend", clearDropIndicator);
+      window.removeEventListener("drop", clearDropIndicator);
+    };
+  }, [dragOver]);
   function interactiveTarget(event: { target: EventTarget | null }) {
     return event.target instanceof Element && Boolean(event.target.closest("button, a, input, select, textarea"));
   }
@@ -5202,6 +5257,10 @@ function ReferenceEntryRow({
       onDrop={(event) => {
         setDragOver(false);
         move(event.dataTransfer.getData("text/plain"), entry.id);
+      }}
+      onDragEnd={() => {
+        setDragging(false);
+        setDragOver(false);
       }}
       onPointerDown={(event) => {
         if (interactiveTarget(event)) return;
@@ -5244,7 +5303,7 @@ function ReferenceEntryRow({
         <>
           <button
             type="button"
-            className="icon-button button ghost"
+            className={`icon-button button ghost${canMoveUp ? "" : " reference-item__move-up--terminal"}`}
             aria-label={`Move ${entry.text} up`}
             title="Move up"
             disabled={!canMoveUp}
@@ -5255,7 +5314,7 @@ function ReferenceEntryRow({
           </button>
           <button
             type="button"
-            className="icon-button button ghost"
+            className={`icon-button button ghost${canMoveDown ? "" : " reference-item__move-down--terminal"}`}
             aria-label={`Move ${entry.text} down`}
             title="Move down"
             disabled={!canMoveDown}

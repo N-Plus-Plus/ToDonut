@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { CurrencyAmount } from "../../shared/components/CurrencyAmount";
 import { FeedbackMessage as FeedbackMessageType, feedbackDurationMs } from "./feedbackTypes";
 import { useFeedbackMessages, useFeedbackStore } from "./FeedbackProvider";
 
@@ -50,7 +51,7 @@ function FeedbackMessage({ message }: { message: FeedbackMessageType }) {
     onMouseUp={updateSelectionPause}
     onKeyUp={updateSelectionPause}
   >
-    <div className="feedback-message__body">{message.title && <strong>{message.title}</strong>}<span>{message.message}</span></div>
+    <div className="feedback-message__body">{message.title && <strong>{message.title}</strong>}<span>{message.message}{message.coinAmount !== undefined && <> <CurrencyAmount amount={message.coinAmount} />!</>}</span></div>
     {message.action && <button className="button ghost" onClick={() => { void message.action?.run(); store.dismiss(message.id); }}>{message.action.label}</button>}
     <button className="icon-button button ghost" aria-label="Dismiss message" onClick={() => store.dismiss(message.id)}>X</button>
   </div>;

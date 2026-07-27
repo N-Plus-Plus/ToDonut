@@ -4,10 +4,10 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { AppData, QUANTIFIER_IDS, Task, createMeta, updateTaskRecord } from "../domain";
+import { AppData, QUANTIFIER_IDS, Task, createMeta, createReferenceEntry, updateTaskRecord } from "../domain";
 import { STATUS_IDS, createSeedData } from "../seed";
 import { buildTaskView, getViewPreference } from "../viewModel";
-import { DEFAULT_TAG_SCOPES, ListRow, TASK_COMPLETION_EXIT_MS, TaskViewPanel, entityDetailBackAction, entityDetailBackTarget, rebaseAppData, settingsSubsectionShowsBack, withInAppBack } from "./App";
+import { ApplicationMenu, DEFAULT_TAG_SCOPES, ListRow, TASK_COMPLETION_EXIT_MS, TaskViewPanel, entityDetailBackAction, entityDetailBackTarget, listItemTitlesForClipboard, rebaseAppData, settingsSubsectionShowsBack, withInAppBack } from "./App";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -46,6 +46,46 @@ describe("dormant Project colour presentation", () => {
     expect(appSource).toContain("color: projectColor");
     expect(styles).toContain(".project-row--colour-accent");
     expect(appSource).toContain('project-row area-card-row project-row--colour-accent project-row--reorderable');
+  });
+});
+
+describe("List detail presentation", () => {
+  it("keeps a List heading title white, sizes its icons to the title, and preserves terminal Item control geometry", () => {
+    const appSource = readFileSync(resolve(root, "src/app/App.tsx"), "utf8");
+    const styles = readFileSync(resolve(root, "src/styles.css"), "utf8");
+
+    expect(appSource).toContain('style={selectedList?.color ? { color: selectedList.color } : undefined}');
+    expect(appSource).not.toContain('<h2 style={selectedList?.color ? { color: selectedList.color } : undefined}>');
+    expect(appSource).toContain("reference-item__move-up--terminal");
+    expect(appSource).toContain("reference-item__move-down--terminal");
+    expect(styles).toContain("--size-page-title-icon: clamp(0.975rem, 2.4375vw, 1.8375rem);");
+    expect(styles).toContain(".entity-back-button svg { width: var(--size-page-title-icon); height: var(--size-page-title-icon); }");
+    expect(styles).toContain("gap: var(--space-page-title-icon-gap);");
+    expect(styles).toContain(".topbar h2 .entity-title-quantifiers .lucide-icon-sequence svg,");
+    expect(styles).toContain(".reference-item__move-up--terminal,\n.reference-item__move-down--terminal { opacity: 0; pointer-events: none; }");
+  });
+
+  it("uses the confirmed completion toast without registering a second completion Undo toast", () => {
+    const appSource = readFileSync(resolve(root, "src/app/App.tsx"), "utf8");
+    const completionSource = appSource.slice(
+      appSource.indexOf("function completeWithRewards"),
+      appSource.indexOf("function taskDefaults"),
+    );
+
+    expect(completionSource).not.toContain("Undo Task completion");
+    expect(completionSource).not.toContain("feedback.info(message");
+  });
+
+  it("suppresses generic commit success feedback when a confirmed callback supplies the single Undo notice", () => {
+    const appSource = readFileSync(resolve(root, "src/app/App.tsx"), "utf8");
+    const taskSaveSource = appSource.slice(
+      appSource.indexOf("commit={(next, expectedIds, successMessage) =>"),
+      appSource.indexOf("createScheduleFromTask", appSource.indexOf("commit={(next, expectedIds, successMessage) =>")),
+    );
+
+    expect(taskSaveSource).toContain('feedback.info("Task save undo available"');
+    expect(taskSaveSource).toContain("editedTaskId === null,");
+    expect(appSource.match(/\n\s*false,\n\s*\);/g)?.length).toBeGreaterThanOrEqual(9);
   });
 });
 
@@ -500,11 +540,37 @@ describe("Reference List row layout", () => {
     expect(open).toHaveBeenCalledOnce();
   });
 
+  it("copies active List Item titles from the application menu in manual order without their links", () => {
+    const seed = createSeedData();
+    const list = seed.referenceLists[0];
+    const data = createReferenceEntry(
+      createReferenceEntry(seed, list.id, "First title", "https://example.com/first"),
+      list.id,
+      "Second title",
+      "https://example.com/second",
+    );
+    expect(listItemTitlesForClipboard(data, list.id)).toBe("First title\r\nSecond title");
+    const copyListItems = vi.fn();
+    render(<ApplicationMenu view="lists" createMultipleListItems={null} copyListItems={copyListItems} signOut={null} exportData={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Open application menu" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Copy" }));
+
+    expect(copyListItems).toHaveBeenCalledOnce();
+  });
+
   it("uses the shared ListRow in the browser and Project/Area detail list sections", () => {
     const appSource = readFileSync(resolve(root, "src/app/App.tsx"), "utf8");
     expect(appSource.match(/<ListRow/g)).toHaveLength(3);
     expect(appSource).toContain("function ListBrowser");
     expect(appSource).toContain("function ProjectDetail");
     expect(appSource).toContain("function AreaDetail");
+  });
+
+  it("clears List and List Item drop indicators on drag end", () => {
+    const appSource = readFileSync(resolve(root, "src/app/App.tsx"), "utf8");
+
+    expect(appSource.match(/window\.addEventListener\("dragend", clearDropIndicator\)/g)).toHaveLength(2);
+    expect(appSource).toContain("onDragEnd={() => {\n        setDragging(false);\n        setDragOver(false);");
   });
 });

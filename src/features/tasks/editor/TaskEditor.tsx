@@ -1,6 +1,6 @@
 import { CSSProperties, FormEvent, KeyboardEvent, RefObject, useEffect, useRef, useState } from "react";
 import { CalendarDays, CalendarPlus, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Circle, CircleCheck, GripVertical, Pencil, Plus, Trash2, X } from "lucide-react";
-import { AppData, ChecklistItem, Task, TaskDraftInput, createTaskCommand, defaultPriorityId, defaultStatusId, newId, nowIso, orderedActivePriorities, saveTaskCommand } from "../../../domain";
+import { AppData, ChecklistItem, Task, TaskDraftInput, createTaskCommand, defaultPriorityId, defaultStatusId, newId, normaliseTagIdsForScope, nowIso, orderedActivePriorities, saveTaskCommand } from "../../../domain";
 import { addDateDays, formatAustralianDate, localDateString, mondayOfWeek, nineWeekDateGrid, parseAustralianDate } from "../../../core/dates/dateService";
 import { moveId } from "../../../core/ordering/ordering";
 import { Modal } from "../../../core/dialogs/Modal";
@@ -53,13 +53,18 @@ export function TaskEditor({ data, mode, onClose, commit, createScheduleFromTask
     const submittedDraft = draft.location.type === "project" || projectText.trim()
       ? { ...draft, location: exactProjectId ? { type: "project" as const, projectId: exactProjectId } : { type: "inbox" as const } }
       : draft;
-    const validation = validateDraft(data, submittedDraft, task?.id ?? null);
+    const normalisedDraft = { ...submittedDraft, tagIds: normaliseTagIdsForScope(data, submittedDraft.tagIds, "task") };
+    const validation = validateDraft(data, normalisedDraft, task?.id ?? null);
     setErrors(validation);
     if (Object.keys(validation).length || submitting) return;
     setSubmitting(true);
     try {
-      const next = mode.type === "create" ? createTaskCommand(data, submittedDraft) : saveTaskCommand(data, mode.taskId, submittedDraft);
-      await commit(next, mode.type === "create" ? [] : [mode.taskId], mode.type === "create" ? "Task created" : "Task saved");
+      const next = mode.type === "create" ? createTaskCommand(data, normalisedDraft) : saveTaskCommand(data, mode.taskId, normalisedDraft);
+      const saved = await commit(next, mode.type === "create" ? [] : [mode.taskId], mode.type === "create" ? "Task created" : "Task saved");
+      if (saved === false) {
+        setErrors({ form: "Task could not be saved. Please try again." });
+        return;
+      }
       onClose();
     } catch (error) {
       setErrors({ form: error instanceof Error ? error.message : "Task could not be saved." });
@@ -141,7 +146,6 @@ function validateDraft(data: AppData, draft: TaskDraftInput, taskId: string | nu
   if (!draft.title.trim()) errors.title = "Task title is required.";
   if (!data.statuses.some((status) => status.id === draft.statusId && !status.deletedAt)) errors.statusId = "Choose an available Status.";
   if (!data.priorities.some((priority) => priority.id === draft.priorityId && !priority.deletedAt)) errors.priorityId = "Configuration error: repair the missing Priority before saving.";
-  if (draft.tagIds.some((tagId) => !data.tags.some((tag) => tag.id === tagId && !tag.deletedAt && tag.allowedScopes.includes("task")))) errors.tagIds = "Choose Task tags only.";
   if (draft.location.type === "project") {
     const projectId = draft.location.projectId;
     if (!data.projects.some((project) => project.id === projectId && !project.deletedAt && !project.archivedAt && !project.completedAt)) errors.project = "Choose an available Project.";

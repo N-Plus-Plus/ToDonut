@@ -1,5 +1,5 @@
 import { AuthChangeEvent, createClient, SupabaseClient, User } from "@supabase/supabase-js";
-import { AppData, CollectionName, MutableRecord, migrateAppData } from "../../domain";
+import { AppData, CollectionName, MutableRecord, hasInvalidTagAssignments, migrateAppData } from "../../domain";
 import { createSeedData } from "../../seed";
 
 export class ConflictError extends Error { constructor(public readonly entityId: string, public readonly currentRevision?: number) { super("A newer saved version exists. Your attempted change was not saved, and current server data was not overwritten."); this.name = "ConflictError"; } }
@@ -66,7 +66,25 @@ export class SupabaseProductionProvider implements PersistenceProvider {
   async updatePassword(password: string): Promise<AuthState> { const { data, error } = await this.client.auth.updateUser({ password }); if (error) return this.stateFromUser(null, error.message, "PASSWORD_RECOVERY"); return this.stateFromUser(data.user); }
   async signOut(): Promise<AuthState> { const { error } = await this.client.auth.signOut(); return { required: true, ready: false, userEmail: null, error: error?.message ?? null }; }
   onAuthStateChange(callback: (state: AuthState) => void): () => void { const { data } = this.client.auth.onAuthStateChange((event, session) => callback(this.stateFromUser(session?.user ?? null, null, event))); return () => data.subscription.unsubscribe(); }
-  async load(): Promise<CanonicalSnapshot> { const { data, error } = await this.client.rpc("todonut_get_snapshot"); if (error) throw new Error(error.message); this.lastSuccessfulSyncAt = new Date().toISOString(); return snapshotFromRpc(data); }
+  async load(): Promise<CanonicalSnapshot> {
+    const { data, error } = await this.client.rpc("todonut_get_snapshot");
+    if (error) throw new Error(error.message);
+    const raw = rawSnapshotFromRpc(data);
+    if (hasInvalidTagAssignments(raw.data)) {
+      try {
+        return await this.replace({
+          next: migrateAppData(raw.data),
+          expectedRevision: raw.canonicalRevision,
+          operationId: `tag-scope-cleanse:${raw.canonicalRevision}:${Date.now().toString(36)}`,
+        });
+      } catch (cleanupError) {
+        if (cleanupError instanceof ConflictError) return this.load();
+        throw cleanupError;
+      }
+    }
+    this.lastSuccessfulSyncAt = new Date().toISOString();
+    return snapshotFromRpc(data);
+  }
   async replace(request: ReplaceSnapshotRequest): Promise<CanonicalSnapshot> { const { data, error } = await this.client.rpc("todonut_replace_snapshot", { next_snapshot: request.next, expected_revision: request.expectedRevision, operation_id: request.operationId, expected_versions: Object.fromEntries(request.expectedVersions ?? new Map<string, number>()) }); if (error) { if (error.message.toLowerCase().includes("conflict")) throw new ConflictError("snapshot"); throw new Error(error.message); } this.lastSuccessfulSyncAt = new Date().toISOString(); return snapshotFromRpc(data); }
   subscribe(onSnapshot: (snapshot: CanonicalSnapshot) => void, onStatus?: (state: SubscriptionState) => void): () => void { this.connection = "connecting"; onStatus?.(this.connection); const channel = this.client.channel("todonut-domain").on("postgres_changes", { event: "*", schema: "public", table: "app_snapshots" }, async () => onSnapshot(await this.load())).subscribe((status) => { this.connection = status === "SUBSCRIBED" ? "connected" : status === "CHANNEL_ERROR" ? "error" : "connecting"; onStatus?.(this.connection); }); return () => { this.connection = "disconnected"; onStatus?.(this.connection); void this.client.removeChannel(channel); }; }
 }
@@ -101,10 +119,15 @@ function validSupabaseConfig(url: string | undefined, key: string | undefined): 
 export function createPersistenceProvider(): PersistenceProvider { const url = import.meta.env.VITE_SUPABASE_URL as string | undefined; const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined; if (validSupabaseConfig(url, key)) return new SupabaseProductionProvider(url!, key!); if (url || key || (import.meta.env.PROD && import.meta.env.VITE_ALLOW_DEV_PERSISTENCE !== "true")) return new MissingProductionProvider(); return new LocalDevelopmentProvider(); }
 export function findMutableRecord(data: AppData, id: string): MutableRecord | undefined { const collections: CollectionName[] = ["areas", "projects", "tasks", "referenceLists", "referenceListEntries", "statuses", "priorities", "tags", "tagGroups", "quantifierDefinitions", "recurrenceRules", "recurrenceGenerations", "viewPreferences"]; for (const collection of collections) { const match = data[collection].find((record) => record.id === id); if (match) return match; } return undefined; }
 
-function snapshotFromRpc(value: unknown): CanonicalSnapshot {
-  if (value === null || value === undefined) return { data: migrateAppData(createSeedData()), canonicalRevision: 0 };
+function rawSnapshotFromRpc(value: unknown): { data: Partial<AppData>; canonicalRevision: number } {
+  if (value === null || value === undefined) return { data: createSeedData(), canonicalRevision: 0 };
   const payload = value as { snapshot?: Partial<AppData>; canonicalRevision?: number; canonical_revision?: number };
   const data = payload?.snapshot ? payload.snapshot : value as Partial<AppData>;
   const revision = Number(payload?.canonicalRevision ?? payload?.canonical_revision ?? 1);
-  return { data: migrateAppData(data), canonicalRevision: Number.isFinite(revision) && revision >= 0 ? revision : 0 };
+  return { data, canonicalRevision: Number.isFinite(revision) && revision >= 0 ? revision : 0 };
+}
+
+function snapshotFromRpc(value: unknown): CanonicalSnapshot {
+  const raw = rawSnapshotFromRpc(value);
+  return { data: migrateAppData(raw.data), canonicalRevision: raw.canonicalRevision };
 }

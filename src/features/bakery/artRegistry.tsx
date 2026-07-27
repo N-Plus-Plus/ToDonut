@@ -4,7 +4,7 @@ import { INGREDIENTS, PRODUCTS } from "../../domain/bakeryCatalogue";
 
 const paths = import.meta.glob("../../assets/bakery/**/*.png", { eager: true, query: "?url", import: "default" }) as Record<string, string>;
 
-const interfaceKeys = ["currencies", "ingredients", "products", "locations", "upgrades", "effects", "milestones"] as const;
+const interfaceKeys = ["currencies", "ingredients", "products", "locations", "upgrades", "effects", "milestones", "bake", "no-bake", "list-for-sale"] as const;
 const navigationKeys = ["bakery-pantry", "bakery-kitchen", "bakery-display", "bakery-business", "bakery-storefront", "bakery-donuts"] as const;
 const businessKeys = [
   "recipe-book", "locked-recipe",
@@ -24,6 +24,7 @@ const explicitAssetPaths: Record<string, string> = {
   ...Object.fromEntries(businessKeys.map((key) => [key, `business/${key}.png`])),
   ...Object.fromEntries(shopKeys.map((key) => [`shop-${key}`, `shops/${key}.png`])),
   ...Object.fromEntries(basicPackKeys.map((key) => [`basic-pack-${key}`, `packs/${basicPackAssetFiles[key]}.png`])),
+  "bakery-display-background": "display/bakery-display-background.png",
   coin: "currencies/coin.png",
 };
 
@@ -32,7 +33,7 @@ export const bakeryArtKeys = [
   ...navigationKeys,
   ...businessKeys,
   ...basicPackKeys.map((key) => `basic-pack-${key}`),
-  "coin", "dough", "sprinkles", "icing",
+  "bakery-display-background", "coin", "dough", "sprinkles", "icing",
   ...INGREDIENTS.map((item) => item.assetKey),
   ...PRODUCTS.map((item) => item.assetKey),
 ] as const;
