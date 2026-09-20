@@ -2,11 +2,11 @@
 
 ToDonut is a dark-only, single-user task-management web app foundation built with Vite, React and TypeScript.
 
-After reading this file, read CODEX.md next.
+After reading this file, read AGENTS.md next.
 
 ## Project Documentation
 
-- [CODEX.md](CODEX.md): engineering notes and mandatory instructions for future Codex work.
+- [AGENTS.md](AGENTS.md): engineering notes and mandatory instructions for future Codex work.
 - [PATTERNS.md](PATTERNS.md): authoritative technical implementation patterns and module boundaries.
 - [STYLE.md](STYLE.md): authoritative visual-system and UI consistency guide.
 - [ROADMAP.md](ROADMAP.md): product roadmap and deferred work.

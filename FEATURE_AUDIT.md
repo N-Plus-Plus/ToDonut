@@ -2,7 +2,7 @@
 
 Audit date: 2026-07-02  
 Authority: `DESIGN.md` current launch requirements.  
-Method: fresh code inspection against `DESIGN.md`, with `README.md`, `CODEX.md`, `PATTERNS.md`, `STYLE.md`, `docs/architecture.md` and `ROADMAP.md` used only for interpretation/deferred-scope checks.
+Method: fresh code inspection against `DESIGN.md`, with `README.md`, `AGENTS.md`, `PATTERNS.md`, `STYLE.md`, `docs/architecture.md` and `ROADMAP.md` used only for interpretation/deferred-scope checks.
 
 The original audit was read-only. The 2026-07-02 closure sections record subsequent production, test and documentation corrections. The desktop cleanup pass added the forward-only Supabase migration `0005_fix_snapshot_operation_cleanup.sql`.
 
@@ -139,7 +139,7 @@ Conflicting or stale supporting documentation:
 
 - `README.md` states “completed hierarchy workflows” including full-subtree movement and sibling-only manual ordering. Code evidence shows these are not fully reachable from UI, so that README claim is overstated for launch readiness.
 - `README.md` says final TOTP owner flow and production owner enrolment still require Supabase configuration/Edge Function wiring; this aligns with the P0 auth finding.
-- `CODEX.md` says future passes must keep README/CODEX up to date, but the current user task explicitly permits changing only `FEATURE_AUDIT.md`; this audit did not edit those docs.
+- `AGENTS.md` says future passes must keep README/CODEX up to date, but the current user task explicitly permits changing only `FEATURE_AUDIT.md`; this audit did not edit those docs.
 
 Features described as launch scope that appear intentionally deferred:
 

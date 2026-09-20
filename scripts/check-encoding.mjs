@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const extensions = new Set([".css", ".html", ".md", ".ts", ".tsx"]);
 const roots = ["src", "docs"];
-const rootDocuments = ["CODEX.md", "DESIGN.md", "FEATURE_AUDIT.md", "PATTERNS.md", "README.md", "ROADMAP.md", "STYLE.md"];
+const rootDocuments = ["AGENTS.md", "DESIGN.md", "FEATURE_AUDIT.md", "PATTERNS.md", "README.md", "ROADMAP.md", "STYLE.md"];
 
 export const mojibakeMarkers = [
   String.fromCodePoint(0x00c2),

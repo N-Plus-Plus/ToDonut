@@ -2,6 +2,10 @@
 
 ToDonut is a single-user task-management web app. The repository now uses Vite, React and TypeScript because the previous files were an early static scaffold rather than an established application stack.
 
+This project is a Git repository and may be treated as a normal Git worktree for inspection and version-control operations.
+
+`AGENTS.md` is the root entry guide for this project.
+
 ## Mandatory Project Instructions
 
 Before making application changes, read and follow:
@@ -182,7 +186,7 @@ ToDonut currently uses a custom tokenized CSS system and reusable React markup p
 
 The Bakery catalogue-data version is 5: 26 purchasable ingredients and exactly 100 data-driven recipes/products. Task completion awards Sugar rather than Sprinkles; legacy current Sprinkles balances convert once to Sugar.
 
-During any pass over this app, it is your obligation to keep README.md and CODEX.md up to date so that they are perpetually materially complete and correct. The user will not ask for this but it is a universal requirement that, to keep future passes informed and oriented in this project effectively, this is required behaviour.
+During any pass over this app, it is your obligation to keep README.md and AGENTS.md up to date so that they are perpetually materially complete and correct. The user will not ask for this but it is a universal requirement that, to keep future passes informed and oriented in this project effectively, this is required behaviour.
 
 # PRODUCT OWNER NOTE
 

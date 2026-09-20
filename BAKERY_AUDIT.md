@@ -14,7 +14,7 @@ The pass deliberately did not implement Project-completion Icing integration, re
 
 - Repository: `C:\Users\troyn\OneDrive\Drive\myApps\ToDonut`
 - Platform: Windows PowerShell, Node/Vite/React/TypeScript.
-- Instructions read first: `CODEX.md`, then `GAME.md`, `README.md`, `DESIGN.md`, `STYLE.md`, `PATTERNS.md`, `docs/architecture.md`, and `docs/bakery-balance-report.md`.
+- Instructions read first: `AGENTS.md`, then `GAME.md`, `README.md`, `DESIGN.md`, `STYLE.md`, `PATTERNS.md`, `docs/architecture.md`, and `docs/bakery-balance-report.md`.
 - Evidence reviewed: Bakery domain registries and commands, Bakery screens, app mutation integration, canonical normalisation, persistence adapters, both Supabase migrations, focused tests, CSS, export/diagnostics code, balance harness/report, and existing visual-review artefacts.
 - Authenticated production runtime was not available. The existing `visual-review/bakery-390x844.png` currently shows the owner sign-in gate rather than Bakery, so responsive and interaction findings are static-code findings, not a complete authenticated browser walkthrough.
 - No hosted Supabase migration was applied or live production snapshot read. Migration findings are based on SQL and client normalisation.
