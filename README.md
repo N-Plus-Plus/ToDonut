@@ -18,8 +18,8 @@ After reading this file, read AGENTS.md next.
 Install the lockfile dependencies before starting the app, and rerun the install after pulling dependency changes:
 
 ```powershell
-npm.cmd install
-npm.cmd run dev
+pnpm.cmd install --frozen-lockfile
+pnpm.cmd run dev
 ```
 
 The Quantifier icon catalogue requires the locked `lucide-react` 0.577.x release; an older local `node_modules` can incorrectly reject current names such as `battery-plus`.
@@ -95,8 +95,8 @@ Trusted-device approval, server-side lockout email delivery and production owner
 ## Development
 
 ```powershell
-npm.cmd install
-npm.cmd run dev
+pnpm.cmd install --frozen-lockfile
+pnpm.cmd run dev
 ```
 
 PowerShell may block `npm.ps1` on this machine, so `npm.cmd` is the reliable form.
@@ -104,10 +104,10 @@ PowerShell may block `npm.ps1` on this machine, so `npm.cmd` is the reliable for
 ## Checks
 
 ```powershell
-npm.cmd run typecheck
-npm.cmd run check:encoding
+pnpm.cmd run typecheck
+pnpm.cmd run check:encoding
 npm.cmd test
-npm.cmd run build
+pnpm.cmd run build
 ```
 
 ## GitHub Pages
@@ -158,7 +158,7 @@ Password recovery depends on Supabase Auth redirect settings. In Supabase Dashbo
 LAN mobile testing:
 
 ```powershell
-npm.cmd run dev -- --host 0.0.0.0 --port 5173
+pnpm.cmd run dev -- --host 0.0.0.0 --port 5173
 ```
 
 Verification steps: sign in with the owner account, create a small clearly labelled test task or list item, confirm it appears in the hosted `app_snapshots` row, refresh the page, confirm the record reloads from Supabase, then remove the test record unless you intentionally keep it labelled. Anonymous browser sessions should see the owner sign-in screen and must not read or modify ToDonut data.

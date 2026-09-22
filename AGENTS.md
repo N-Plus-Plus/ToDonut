@@ -35,7 +35,7 @@ Before making any UI, CSS, layout, component, icon or visual-state change, read 
 - Frontend: Vite + React + TypeScript.
 - Routing: in-app view state only, so GitHub Pages project-site hosting does not require server rewrites.
 - Styling: ordinary CSS with a dark-only tokenized visual system documented in `STYLE.md`. UI chrome is true monochrome; the supplied colour palette is reserved for statuses, priorities, tags and entity accents.
-- Icons: Lucide React. Local dependencies must match the lockfile; rerun `npm.cmd install` after pulling dependency changes. Quantifier validation and dynamic rendering require the locked 0.577.x catalogue for names such as `battery-plus`.
+- Icons: Lucide React. Local dependencies must match the lockfile; rerun `pnpm.cmd install --frozen-lockfile` after pulling dependency changes. Quantifier validation and dynamic rendering require the locked 0.577.x catalogue for names such as `battery-plus`.
 - Persistence: app code depends on `PersistenceProvider`.
 - Technical implementation patterns: `PATTERNS.md`.
 - Source boundaries: app composition in `src/app`, cross-cutting services in `src/core`, feature screens in `src/features`, provider implementations in `src/infrastructure`, reusable visual primitives in `src/shared`, and pure domain model/rules in `src/domain.ts` plus future `src/domain/` modules.
@@ -173,7 +173,7 @@ Vite `base` is relative locally and uses `GITHUB_REPOSITORY` during GitHub Actio
 
 ## Encoding And Optional Destinations
 
-Application source and project documentation are UTF-8 without a byte-order mark. Run `npm.cmd run check:encoding` after changing user-visible copy; the focused guard scans source and documentation for known mojibake markers and the Unicode replacement character without rejecting ordinary valid Unicode.
+Application source and project documentation are UTF-8 without a byte-order mark. Run `pnpm.cmd run check:encoding` after changing user-visible copy; the focused guard scans source and documentation for known mojibake markers and the Unicode replacement character without rejecting ordinary valid Unicode.
 
 Bakery and Settings are optional destination-level chunks loaded with `React.lazy` from the app composition boundary. Keep startup, routing, Today, Inbox, Task creation, the navigation shell, mutation handling and canonical state ownership eager. Every optional destination uses the shared announced loading presentation and remains inside `AppErrorBoundary`, so direct hash restoration keeps the shell visible and chunk failures offer Reload recovery.
 
