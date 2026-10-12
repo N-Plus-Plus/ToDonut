@@ -1,5 +1,9 @@
 # ToDonut Technical Design Patterns
 
+## v3 authority and focused maintenance
+
+Current user instructions and accepted decisions take precedence. Use [AGENTS](AGENTS.md) for targeted routing; [USER_EXPERIENCE](USER_EXPERIENCE.md) owns durable journeys, [docs/CONTRACTS](docs/CONTRACTS.md) accepted current rules and [docs/TESTING](docs/TESTING.md) verification timing. Conflicting older proposals/addenda are reference only. Current implementation/live/acceptance evidence belongs in README; audits are historical evidence, not a routine work mandate. Update only the owning authority when an enduring rule changes, rather than rewriting documentation every pass.
+
 ## 1. Purpose
 
 This document defines the authoritative technical design patterns for ToDonut.
@@ -32,7 +36,7 @@ This document governs:
 
 `PATTERNS.md` defines how the code should implement recurring technical concerns.
 
-`FEATURE_AUDIT.md` describes current implementation status.
+`README.md` owns current implementation evidence; `FEATURE_AUDIT.md` retains historical findings.
 
 `ROADMAP.md` describes deferred product work.
 

@@ -1,5 +1,9 @@
 # ToDonut Visual System
 
+## v3 authority and focused maintenance
+
+Current user instructions and accepted decisions take precedence. Use [AGENTS](AGENTS.md) for targeted routing; [USER_EXPERIENCE](USER_EXPERIENCE.md) owns durable journeys, [docs/CONTRACTS](docs/CONTRACTS.md) accepted current rules and [docs/TESTING](docs/TESTING.md) verification timing. Conflicting older proposals/addenda are reference only. Current implementation/live/acceptance evidence belongs in README; audits are historical evidence, not a routine work mandate. Update only the owning authority when an enduring rule changes, rather than rewriting documentation every pass.
+
 This document is authoritative for ToDonut interface and visual-design work. Future UI changes must reuse these tokens and component primitives unless this document is deliberately updated in the same change.
 
 ## Visual Philosophy
@@ -512,3 +516,29 @@ Malformed encoding, mojibake and replacement characters are interface defects. S
 Close controls and reorder handles use Lucide icons. Close controls use `X` with an accessible name. Reorder controls use `GripVertical`, the shared icon size, grab cursor and focus treatment, and must not render where reordering is unavailable. Configuration reorder handles support focused Up/Down arrow operation; Task and List Item handles retain their existing pointer/touch drag behaviour.
 
 Optional destination loading boundaries use the shared restrained empty-state presentation, include visible accessible loading text and preserve the surrounding application shell. They must not present a blank screen or layout-breaking spinner.
+
+## Focused visual review and retained engineering rules
+
+Review only affected controls/journeys and implicated mobile/desktop layouts using existing tokens and Lucide primitives. No screenshots unless directly requested; report source-only/device limitations honestly. Do not replace this mature visual system with the optional starter stylesheet. Existing review checklists apply to affected scope, not a whole-app campaign.
+
+All checkbox-driven UI uses the shared `CircleCheckbox`: Lucide `Circle` for unchecked and `CircleCheck` for checked. Checked entity options inherit their entity colour; all other checked states use mint. This applies to menu options, Task checklist editing, Schedule weekdays and occurrence settings, tag scopes, and configuration defaults. Native checkbox artwork is not used.
+
+Project browser cards keep their action group in the same grid row as the text through tablet and wide-mobile widths. The action group stacks beneath the text only at the narrow-card breakpoint.
+
+Project browser-card title text is primary white at medium (`500`) weight; the configured coloured Status icon remains immediately before it and configured Quantifier icons remain immediately after it.
+
+Per-Project colour is dormant compatibility data. Preserve the `Project.color` schema, existing stored values, domain/editor forwarding, migrations, Activity History handling and the opt-in `.project-row--colour-accent` CSS hook. Project create/edit does not show a colour picker, and Project browser cards do not activate the colour accent. Editing must forward the existing value unchanged; new Projects retain the established hidden default so this presentation can be restored later.
+
+Root Task rows must align with their section heading and empty/filtered states. Apply hierarchy indentation only to descendants, and keep the selected row pill absolutely positioned so it does not consume row grid width. Compact rows use one shared grid: drag handle, Priority-coloured completion ring, title/metadata and the right-aligned action group. Status, Due and Project metadata are muted text with `Status:`, `Due:` and `Project:` labels, not pills; Status includes a small status-colour marker. Edit, Process and Delete stay icon-only on one row with the same square outline geometry; Delete keeps destructive styling.
+
+Task view controls stay in the existing control bar. Sort and Group remain left aligned, Show Closed sits immediately before More in the right-aligned default visible controls, and the expanded More panel contains the Task Tag filter. Show Closed is represented by the EyeClosed/Eye icon toggle only; do not add a second checkbox or parallel state.
+
+Shared editor disclosure headings use the uppercase disclosure style. Task editor History is an edit-only Details tab and mounts Activity History only when that tab is selected; input labels, modal titles, tabs and body copy are not uppercased.
+
+Description textareas use regular body weight even when nested inside bold `.form-row` labels. A configured entity colour may colour a custom dropdown's selected text, but its Lucide disclosure chevron remains ordinary white. Project and Area editors have no internal tabs, so their fields render directly in the modal form without a decorative `Details` fieldset; genuine semantic configuration groups retain their fieldsets and legends.
+
+Desktop shell scrolling is split between the full-height sidebar and workspace. Do not restore body-level desktop scrolling that lets long workspace views displace sidebar navigation. Sidebar brand/navigation flex items remain non-shrinking, and Bakery follows Settings at the standard navigation gap rather than using bottom-pinning or flexible spacer height. Mobile remains document-scrolled.
+
+Ultra-wide presentation uses a root CSS interface zoom of `1.3` from a `2000px` viewport width and resets naturally to `1` below that media-query threshold. The full-height shell uses the inverse height at that breakpoint so its zoomed result remains one dynamic viewport tall. This default compounds with ordinary browser zoom. Body-portalled `AnchoredOverlay` coordinates and matched widths divide by the effective CSS zoom after viewport clamping so custom dropdowns stay attached to their triggers.
+
+Mobile card and configuration layouts are shared responsive variants, not separate mutation paths. Tasks use the shared two-by-two core-action grid; Lists place Edit over Archive/Delete; Projects and Areas use the shared left-opening card hamburger. Priority configuration places Edit above Up/Down, while Status configuration places Up/Edit above Down/Delete. Mobile card and Settings reorder handles use the reduced leading inset and remain vertically centred.

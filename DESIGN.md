@@ -1,5 +1,9 @@
 # ToDonut Launch Design Specification
 
+## v3 authority and focused maintenance
+
+Current user instructions and accepted decisions take precedence. Use [AGENTS](AGENTS.md) for targeted routing; [USER_EXPERIENCE](USER_EXPERIENCE.md) owns durable journeys, [docs/CONTRACTS](docs/CONTRACTS.md) accepted current rules and [docs/TESTING](docs/TESTING.md) verification timing. Conflicting older proposals/addenda are reference only. Current implementation/live/acceptance evidence belongs in README; audits are historical evidence, not a routine work mandate. Update only the owning authority when an enduring rule changes, rather than rewriting documentation every pass.
+
 ## 1. Document purpose
 
 This document defines the intended launch-ready state of ToDonut.
@@ -45,7 +49,7 @@ It is the shared product reference for:
 
 This document defines what ToDonut should do at launch. It does not describe how much of that behaviour is currently implemented.
 
-Current implementation status belongs in `FEATURE_AUDIT.md`.
+Current source, deployment and acceptance evidence belongs in `README.md`; `FEATURE_AUDIT.md` is historical.
 
 Deferred features and post-launch ideas belong in `ROADMAP.md`.
 
@@ -55,7 +59,9 @@ Technical deployment and infrastructure details may be expanded in architecture 
 
 ## 2. Document authority
 
-When documents conflict, use this precedence:
+The v3 authority statement above and accepted current rules in CONTRACTS/USER_EXPERIENCE take precedence. The following original launch-document ordering applies only where it remains consistent:
+
+
 
 1. `DESIGN.md`
 
@@ -3053,7 +3059,7 @@ the same pass should update this document.
 
 Minor visual adjustments that remain within `STYLE.md` do not require duplication here.
 
-Post-launch ideas should be added to `ROADMAP.md`, not this document.
+Only owner-approved future outcomes belong in `ROADMAP.md`; do not add speculative ideas automatically.
 # Bakery access addendum
 
 Bakery is a dedicated destination with a persistent header launcher and a labelled desktop navigation entry. The launcher becomes icon-led at narrow widths. It participates in browser history and Back navigation. Bakery is intentionally not inserted into the mobile dock.
