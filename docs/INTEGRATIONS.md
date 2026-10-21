@@ -10,7 +10,7 @@ GitHub Pages/Actions hosts the static build; [Deployment](DEPLOYMENT.md) owns pu
 
 Owner email/password setup is manual in Supabase Authentication > Users; keep public sign-up disabled and confirm email when required. Production owner enrolment, trusted devices and lockout delivery need separately verified project configuration; launch specifications are not implementation evidence.
 
-Supabase Auth URL Configuration must allow the actual app origin, including http://127.0.0.1:5173/ for local testing and the actual Pages URL for production. Recovery hashes with type=recovery are handled before ordinary hash routing; Set Password uses the provider updatePassword path. Never log credential-bearing redirects or session material.
+Supabase Auth URL Configuration must allow the actual app origin, including http://127.0.0.1:10230/ for local testing and the actual Pages URL for production. Recovery hashes with type=recovery are handled before ordinary hash routing; Set Password uses the provider updatePassword path. Never log credential-bearing redirects or session material.
 
 ## Failure, retry and time
 

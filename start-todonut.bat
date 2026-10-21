@@ -2,7 +2,7 @@
 setlocal
 cd /d "%~dp0"
 
-set "PORT=5173"
+set "PORT=10230"
 set "URL=http://127.0.0.1:%PORT%"
 
 echo Stopping anything listening on port %PORT%...

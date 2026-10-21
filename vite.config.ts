@@ -24,4 +24,6 @@ export default defineConfig({
     __SOURCE_COMMIT__: JSON.stringify(sourceCommit || null),
   },
   plugins: [react()],
+  server: { host: "127.0.0.1", port: 10230, strictPort: true },
+  preview: { host: "127.0.0.1", port: 10239, strictPort: true },
 });
