@@ -1,10 +1,14 @@
-# ToDonut user experience
+<!-- Document ceiling: 125 lines; 8,500 characters including metadata. On overflow, apply AGENTS.md decision rule. -->
+# User experience
+
+> Repository instruction precedence: [AGENTS.md](../AGENTS.md) governs this document.
+
 
 ## Purpose and scope
 
 One owner captures and reviews Tasks, organises Projects/Areas, keeps reference Lists and uses optional Bakery progression. Mobile touch and keyboard workflows matter; production is online-first, without implied offline/PWA support. Check the affected journey, not the entire product.
 
-Current source navigation is derived from [navigationRegistry.ts](src/app/navigation/navigationRegistry.ts). Today opens by default. Mobile page one is Today, Inbox, Tasks, Lists, Projects, Upcoming; page two is Areas, Overdue, Someday, Trash, Bakery, Settings. Changing dock page does not change destination. Earlier five-item descriptions are superseded.
+Current source navigation is derived from [navigationRegistry.ts](../src/app/navigation/navigationRegistry.ts). Today opens by default. Mobile page one is Today, Inbox, Tasks, Lists, Projects, Upcoming; page two is Areas, Overdue, Someday, Trash, Bakery, Settings. Changing dock page does not change destination. Earlier five-item descriptions are superseded.
 
 ## Accepted workflow rules
 

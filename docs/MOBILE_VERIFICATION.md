@@ -1,9 +1,13 @@
-# Mobile Verification Checklist
+<!-- Document ceiling: 125 lines; 8,200 characters including metadata. On overflow, apply AGENTS.md decision rule. -->
+# Mobile verification
+
+> Repository instruction precedence: [AGENTS.md](../AGENTS.md) governs this document.
+
 
 Use this for physical-phone LAN testing. Start the app from the project root:
 
 ```powershell
-npm.cmd run dev -- --host 0.0.0.0 --port 5173
+pnpm.cmd run dev -- --host 0.0.0.0 --port 5173
 ```
 
 Open `http://<computer-lan-ip>:5173/` on a phone connected to the same network and sign in with the Supabase owner account.

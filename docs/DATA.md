@@ -1,4 +1,8 @@
-# ToDonut data and persistence
+<!-- Document ceiling: 135 lines; 9,000 characters including metadata. On overflow, apply AGENTS.md decision rule. -->
+# Data and persistence
+
+> Repository instruction precedence: [AGENTS.md](../AGENTS.md) governs this document.
+
 
 ## Sources and boundaries
 
@@ -14,7 +18,7 @@ Every loaded canonical snapshot includes a monotonically increasing `canonicalRe
 
 The app-level `commit` path queues local mutations and submits them sequentially. Rapid independent actions, such as checking off two Tasks before the first save confirms, must remain optimistic locally, then rebase each queued snapshot onto the latest confirmed canonical snapshot before calling the persistence provider. Do not bypass this queue for ordinary UI mutations or reintroduce parallel provider writes from feature handlers.
 
-Supabase production saves call `todonut_replace_snapshot`, whose authoritative named arguments are `next_snapshot`, `expected_revision`, `operation_id` and `expected_versions`. It locks the canonical snapshot row, rejects stale canonical revisions and submitted stale entity versions, treats an exact operation-ID retry idempotently, and returns `{ snapshot, canonicalRevision }`. The development provider enforces the same contract. Revision baselines are tokens, not backup snapshots; ordinary writes retain only the current canonical snapshot. This pass adds no retained recovery checkpoints or snapshot archive, so checkpoint count is `0`.
+Supabase production saves call `todonut_replace_snapshot`, whose authoritative named arguments are `next_snapshot`, `expected_revision`, `operation_id` and `expected_versions`. It locks the canonical snapshot row, rejects stale canonical revisions and submitted stale entity versions, treats an exact operation-ID retry idempotently, and returns `{ snapshot, canonicalRevision }`. The development provider enforces the same contract. Revision baselines are tokens, not backup snapshots; ordinary writes retain only the current canonical snapshot. No retained recovery checkpoints or snapshot archive are implemented; checkpoint count is `0`.
 
 Migration `0005_fix_snapshot_operation_cleanup.sql` is the forward-only hosted fix for Supabase safe-update enforcement. It preserves the four-argument RPC contract, removes the previous table-wide `app_snapshot_operations` delete, inserts the confirmed current operation, and prunes only older operation records outside the newest 16 using an explicit `WHERE` predicate. Do not edit already-applied migrations to change this behavior.
 

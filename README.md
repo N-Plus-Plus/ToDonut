@@ -1,3 +1,5 @@
+<!-- Document ceiling: 92 lines; 5,600 characters including metadata. On overflow, apply AGENTS.md decision rule. -->
+<!-- Repository instruction precedence: AGENTS.md governs this document. -->
 # ToDonut
 
 ToDonut is a dark-only, single-user task-management app built with Vite, React and TypeScript. It supports Tasks, Projects, Areas, reference Lists, Settings Schedules and optional Bakery progression, with provider-neutral canonical snapshot persistence.
@@ -5,7 +7,7 @@ ToDonut is a dark-only, single-user task-management app built with Vite, React a
 ## Current state
 
 - Implemented source: shared task views/editors, entity lifecycle and history, configurable Status/Priority/Tags/Quantifiers, Lists/Items, client Schedule catch-up, Bakery, mutation recovery, sanitised Diagnostics and desktop full-fidelity export. Production is online-first Supabase; localStorage is development-only. Launch Child Task creation and Must Do Today remain disabled; existing hierarchy compatibility is retained.
-- Source baseline inspected during v3 adoption: main at 5ab42fc, package version 0.1.0, AppData schema 11. Worktree documentation changes are separate from that commit.
+- Source currently declares package version 0.1.0 and AppData schema 11.
 - Last-confirmed live deployment: not established from available local evidence. A configured Pages workflow is not a confirmed live version/URL.
 - Owner acceptance: no specific version/device acceptance record established here. Preserve earlier accepted unchanged flows without inventing acceptance dates.
 - Unverified: current hosted migration ledger, owner/auth administration and physical-device sign-in/keyboard behaviour. Trusted-device/TOTP/lockout specifications must not be presented as completed.
@@ -38,7 +40,7 @@ For intended LAN testing: pnpm.cmd run dev -- --host 0.0.0.0 --port 5173. Physic
 | Local built preview | pnpm.cmd run preview |
 | Publish/recover | Explicitly authorised Pages workflow; [Deployment](docs/DEPLOYMENT.md) |
 
-Start future tasks with [AGENTS](AGENTS.md). Specialist authorities: [Architecture](docs/architecture.md), [Data](docs/DATA.md), [Contracts](docs/CONTRACTS.md), [Integrations](docs/INTEGRATIONS.md), [Testing](docs/TESTING.md), [Deployment](docs/DEPLOYMENT.md), [Style](STYLE.md), [User experience](USER_EXPERIENCE.md), [Roadmap](ROADMAP.md). Detailed references remain [Design](DESIGN.md), [Patterns](PATTERNS.md), [Game](GAME.md) and [Recipes](RECIPES.md). Historical [feature audit](FEATURE_AUDIT.md), [Bakery audit](BAKERY_AUDIT.md) and [balance report](docs/bakery-balance-report.md) do not create work or prove current deployment.
+Start with [AGENTS](AGENTS.md). Authorities: [specification](docs/SPECIFICATION.md), [architecture](docs/ARCHITECTURE.md), [contracts](docs/CONTRACTS.md), [data](docs/DATA.md), [Bakery](docs/BAKERY.md), [integrations](docs/INTEGRATIONS.md), [testing](docs/TESTING.md), [deployment](docs/DEPLOYMENT.md), [style](docs/STYLE.md), [user experience](docs/USER_EXPERIENCE.md), [skills](docs/SKILLS.md) and [roadmap](ROADMAP.md).
 
 ## Local directory and listener contract
 

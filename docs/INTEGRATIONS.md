@@ -1,4 +1,8 @@
-# ToDonut integrations
+<!-- Document ceiling: 135 lines; 9,000 characters including metadata. On overflow, apply AGENTS.md decision rule. -->
+# Integrations
+
+> Repository instruction precedence: [AGENTS.md](../AGENTS.md) governs this document.
+
 
 ## Dependencies and owners
 

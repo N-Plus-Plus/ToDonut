@@ -1,4 +1,8 @@
-# ToDonut deployment and recovery
+<!-- Document ceiling: 115 lines; 7,600 characters including metadata. On overflow, apply AGENTS.md decision rule. -->
+# Deployment and recovery
+
+> Repository instruction precedence: [AGENTS.md](../AGENTS.md) governs this document.
+
 
 ## Release boundary
 
@@ -8,7 +12,7 @@ The configured host is GitHub Pages through [deploy-pages.yml](../.github/workfl
 
 Inspect/stage only the approved diff, preserving unrelated work. Run or reuse the single relevant [Testing](TESTING.md) release signal for matching source, configuration and dist artefacts. With publication authority, use the existing Pages workflow; do not create another deployment path. One affected non-destructive live smoke is sufficient unless observed risk requires more. Report the actual workflow artefact/version and URL; leave untested sign-in/device acceptance explicit.
 
-Vite uses relative base locally and GITHUB_REPOSITORY for project-site builds. Hash routes need no server rewrites. Pages must use GitHub Actions as source; dist is the uploaded artefact. CI uses Node 22, npm ci and npm run build with repository Actions variables VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY. Local pnpm uses pnpm-lock.yaml; CI uses package-lock.json. Preserve both current paths; dependency changes must account for this mismatch deliberately rather than silently changing tooling.
+Vite uses relative base locally and GITHUB_REPOSITORY for project-site builds. Hash routes need no server rewrites. Pages must use GitHub Actions as source; dist is the uploaded artefact. CI uses Node 22 and pnpm 10 with pnpm-lock.yaml, running pnpm install --frozen-lockfile and pnpm run build with repository Actions variables VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY.
 
 ## Schema/data-affecting release
 
@@ -26,4 +30,4 @@ Rollback needs a compatible safe application artefact; restoring older auth/sche
 
 ## Human review
 
-Ask before consequential product/permission ambiguity; show the first usable material journey before broad polish. Live data changes require reviewed scope, target, impact and recovery. Successful authorised publication is deployment evidence, not proof of owner/device acceptance. Use [Integrations](INTEGRATIONS.md) for Auth redirect setup and [mobile verification](mobile-verification.md) for relevant physical checks.
+Ask before consequential product/permission ambiguity; show the first usable material journey before broad polish. Live data changes require reviewed scope, target, impact and recovery. Successful authorised publication is deployment evidence, not proof of owner/device acceptance. Use [Integrations](INTEGRATIONS.md) for Auth redirect setup and [mobile verification](MOBILE_VERIFICATION.md) for relevant physical checks.
