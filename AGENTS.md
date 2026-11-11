@@ -1,7 +1,13 @@
 <!-- Document ceiling: 155 lines; 10,500 characters including metadata. On overflow, apply AGENTS.md decision rule. -->
 # Codex operating contract and documentation router
 
-> **Repository instruction precedence:** `AGENTS.md` outranks task prompts and all other repository documents. When a prompt contradicts `AGENTS.md`, follow `AGENTS.md` and report the conflict. If a prompt conflicts with another active document, or two other active documents conflict, stop the affected work and ask the owner. Do not choose by recency or specificity. Higher-level platform instructions remain unaffected.
+**Repository instruction precedence:** `AGENTS.md` governs agent operating rules and takes precedence over task prompts and other repository documents. Higher-level platform instructions remain unaffected.
+
+An explicit owner request to add, change or remove functionality authorises the corresponding change to established product requirements, including documented scope, exclusions and accepted behaviour. Such differences are intentional requirements changes, not conflicts requiring reconfirmation. Implement the requested outcome, update the relevant owning documents to reflect the new accepted behaviour, and identify materially superseded requirements in the completion report.
+
+Existing documentation remains authoritative for everything the request does not explicitly change. Do not infer permission for unrelated changes.
+
+Stop only when instructions conflict on a matter the request has not resolved, when the requested outcome is materially ambiguous, or when implementation requires a consequential security, data-integrity, architectural, destructive, expenditure or external-action decision not sufficiently authorised by the request. Do not resolve genuinely unresolved document conflicts by recency or specificity.
 
 ToDonut is an owner-operated task manager with an optional Bakery. Preserve saved data, current behaviour, accepted UX and game balance. Codex discovers `AGENTS.md` natively; an opening prompt such as "read AGENTS.md first" is sufficient. Read the files relevant to the task, not every document by default.
 
@@ -24,7 +30,9 @@ ToDonut is an owner-operated task manager with an optional Bakery. Preserve save
 
 - Maintain one authoritative document per topic. **Never use an initial-suite Markdown document as a progress diary**. Replace stale material in place, without dated appendices, running change histories, validation receipts or repeated summaries. Keep routine history in Git and task output.
 - `ROADMAP.md` holds only approved **unfinished** future outcomes. When delivered, remove the item; verified implementation and commands belong in the relevant current-state documents, not an expanded completed roadmap entry. Similarly, testing documentation contains only currently valid test guidance, not a history of superseded tests.
-- **Material documentation drift:** Compare the observed implementation with accepted intent. Make the smallest defensible choice: update the owning document to describe the intentional as-is (narrow exception/relaxation), **or** correct the build to match the approved document. Do not silently treat drift as permission to change product decisions. Report the discrepancy, the choice and why; ask if owner intent or a material boundary remains unclear.
+- **Requirements changes and documentation drift:** When the owner explicitly requests functionality that differs from the documented product, treat the requested difference as authorised and update the owning documentation alongside implementation. Do not stop merely because the feature was previously excluded, absent or described differently. Report substantive documentation changes in the completion response.
+
+For differences discovered independently of the request, preserve accepted requirements. Correct unintended implementation drift or document a justified existing exception without silently changing product decisions. Ask the owner only when the intended outcome or a consequential boundary remains unresolved.
 - **Per-document limits:** Each Markdown file states its own maximum line count and character count at its top. Before exceeding either cap, consider compaction versus splitting into two focused Markdown siblings **inside the same `docs/` directory** (or appropriate existing directory). Recommend the better option and ask the owner for a decision before changing the document structure. After an approved split, revise the routing map here. Do not split simply to avoid editing stale content. Measure the complete file including its metadata.
 - Australian English in interface text and documents. Do not use em dashes.
 
